@@ -1,0 +1,208 @@
+{
+  "name": "Roble · Worker Redactor",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Worker: Redactor\nRecibe `consulta`, `intent` y `datos`. Devuelve siempre el mismo contrato:\n`{ status, worker, data: { respuesta } }`.\nSi el modelo falla, la salida de error devuelve `status: error` en vez de romper al Manager.",
+        "height": 200,
+        "width": 520,
+        "color": 5
+      },
+      "id": "8cb7ac1a-faad-54ec-bd2f-6b5c36e8aed7",
+      "name": "Nota Redactor",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "consulta",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "datos",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "4e143a48-ef76-5b54-bc30-64c31f451881",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos el redactor de respuestas de Muebles Roble, una mueblería familiar de Córdoba.\nEscribí la respuesta para el cliente usando SOLO estos datos de la tienda:\n- Showroom: lunes a viernes de 9 a 18, sábados de 9 a 13.\n- Precios: mesa de comedor Roble 160 cm $890.000; silla Nórdica $120.000; sofá Lino 3 cuerpos $1.450.000; rack TV Roble 180 $520.000; escritorio Home Office $380.000.\n- Envíos: Córdoba capital de 48 a 72 h hábiles, gratis desde $500.000. Interior del país de 5 a 7 días hábiles, con costo según destino.\n- Devoluciones: 10 días corridos desde la entrega, sin uso y en su embalaje original. Los muebles a medida no tienen devolución.\n- Garantía: 12 meses en estructura y 6 meses en tapizados, por falla de fabricación.\n- Pagos: hasta 12 cuotas sin interés con tarjetas bancarias seleccionadas; 10% de descuento por transferencia.\n\nReglas:\n- Español rioplatense, cálido y directo. Máximo 4 oraciones.\n- Si el cliente necesita algo que no está en estos datos (estado de un pedido, presupuesto con descuento por cantidad, un error de pago), no lo inventes: decí que Julián, del equipo, lo revisa y le escribe hoy.\n- No uses emojis.\n\nTipo de consulta: {{ $json.intent }}\nDatos que ya extrajimos del mensaje: {{ $json.datos }}\nMensaje del cliente:\n###\n{{ $json.consulta }}\n###",
+        "batching": {}
+      },
+      "id": "8e3a9785-c28a-5c70-b930-fc4ea1ff661c",
+      "name": "Redactar respuesta",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        240,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "d954580a-777d-57d6-bb59-537a89c05841",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        240,
+        220
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0894551a-7dfb-5046-ac84-8d755ec9ab6e",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "9a838450-b2b9-516a-9703-8d4a2b019d2b",
+              "name": "worker",
+              "value": "redactor",
+              "type": "string"
+            },
+            {
+              "id": "2ffae23d-bf87-56f9-afbd-98fb8c99ec60",
+              "name": "data",
+              "value": "={{ { respuesta: $json.text } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7d9193dc-384e-53f5-8095-9c0f7d9f549b",
+      "name": "Contrato de salida",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "286b1287-74db-5612-8020-018450cf4191",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "9a838450-b2b9-516a-9703-8d4a2b019d2b",
+              "name": "worker",
+              "value": "redactor",
+              "type": "string"
+            },
+            {
+              "id": "608cdefd-0459-5454-89ab-4fc505537d0e",
+              "name": "data",
+              "value": "={{ { motivo: $json.error } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1c3f8b4f-d0e2-5fbe-98fb-3511af111e26",
+      "name": "Contrato de salida (error)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Redactar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar respuesta": {
+      "main": [
+        [
+          {
+            "node": "Contrato de salida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contrato de salida (error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Redactar respuesta",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

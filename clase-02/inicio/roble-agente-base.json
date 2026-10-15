@@ -1,0 +1,201 @@
+{
+  "name": "Roble · Agente base (M1)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Punto de partida: el agente del Módulo 1\nUn solo agente atiende todo: precios, envíos, garantía y pedidos.\n\n- **System Message** de cinco partes (rol, ámbito, objetivo, reglas, escalamiento).\n- **Max Iterations** en 5 (guardrail de costo).\n- Una herramienta con descripción extensa: `consultar_pedido`.\n- Aviso final en Slack (observabilidad).",
+        "height": 240,
+        "width": 520,
+        "color": 5
+      },
+      "id": "d7ca6bb1-2a7f-586c-8e02-9f970124e48d",
+      "name": "Nota M1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bcf03a52-136c-5ac3-b0b0-6c9340e5e40f",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "aba5aa95-eba8-5621-8892-e5c3d1812a98"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "## Rol\nSos el asistente virtual de Muebles Roble, una mueblería familiar de Córdoba que vende en su showroom y en su tienda online.\n\n## Ámbito\nRespondés consultas de clientes sobre productos, precios, envíos, devoluciones, garantía, pagos y el estado de sus pedidos. No tenés permiso para aplicar descuentos, armar presupuestos especiales, cambiar pedidos ni prometer fechas que no figuren en los datos.\n\n## Objetivo\nQue el cliente reciba en un solo mensaje una respuesta correcta y breve, sin tener que esperar a Julián.\n\n## Datos de la tienda\n- Showroom: lunes a viernes de 9 a 18, sábados de 9 a 13.\n- Precios: mesa de comedor Roble 160 cm $890.000; silla Nórdica $120.000; sofá Lino 3 cuerpos $1.450.000; rack TV Roble 180 $520.000; escritorio Home Office $380.000.\n- Envíos: Córdoba capital de 48 a 72 h hábiles, gratis desde $500.000. Interior del país de 5 a 7 días hábiles, con costo según destino.\n- Devoluciones: 10 días corridos desde la entrega, sin uso y en su embalaje original. Los muebles a medida no tienen devolución.\n- Garantía: 12 meses en estructura y 6 meses en tapizados, por falla de fabricación.\n- Pagos: hasta 12 cuotas sin interés con tarjetas bancarias seleccionadas; 10% de descuento por transferencia.\n\n## Reglas de uso de herramientas\n- Si el cliente da un número de pedido, usá la herramienta consultar_pedido antes de responder.\n- Nunca inventes el estado de un pedido.\n\n## Escalamiento\nSi el cliente pide un presupuesto especial, un descuento, reclama algo que no está en los datos o pide hablar con una persona, respondé exactamente: \"Le paso tu consulta a Julián, del equipo, y te escribe hoy.\"\n\n## Estilo\nEspañol rioplatense, cálido y directo. Máximo 4 oraciones. Sin emojis.",
+          "maxIterations": 5
+        }
+      },
+      "id": "84dc4c3c-e298-5227-a5a0-80f3b540a9ce",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "d954580a-777d-57d6-bb59-537a89c05841",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        160,
+        220
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Usá esta herramienta para consultar el estado de un pedido de Muebles Roble cuando el cliente pregunta dónde está su compra, cuándo llega o si ya salió, y menciona un número de pedido. La entrada es solo el número de pedido (por ejemplo, 4512). Devuelve el producto y el estado del pedido. No sirve para precios ni políticas.",
+        "jsCode": "// Pedidos de prueba de Muebles Roble. En el Módulo 4 esta herramienta se reemplaza por el CRM.\nconst pedidos = {\n  '4512': 'Rack TV Roble 180. En camino: sale hoy con el camión de Ezequiel, llega mañana entre 9 y 13.',\n  '4519': 'Mesa de comedor Roble 160 cm. En preparación en el taller: se despacha el jueves.',\n  '4523': 'Sofá Lino 3 cuerpos. Entregado el lunes.'\n};\nconst numero = String(query).replace(/[^0-9]/g, '');\nreturn pedidos[numero] || 'No existe un pedido con el número ' + numero + '.';"
+      },
+      "id": "5951679c-2381-5181-82ce-19ce644aeaed",
+      "name": "consultar_pedido",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        380,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#operaciones",
+          "mode": "name"
+        },
+        "text": "=Tarea completada por el agente de Muebles Roble.\nConsulta: {{ $('When chat message received').first().json.chatInput }}\nRespuesta: {{ $('AI Agent').first().json.output }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "6f40e3c1-789d-57e8-8749-18a60cbcc529",
+      "name": "Avisar en Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        560,
+        0
+      ],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3de8ac14-6896-564c-bddb-f9e32b761863",
+              "name": "output",
+              "value": "={{ $('AI Agent').first().json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b813ee18-fe6d-598f-941b-0921bde16f95",
+      "name": "Respuesta al cliente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        780,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Avisar en Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar en Slack": {
+      "main": [
+        [
+          {
+            "node": "Respuesta al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_pedido": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

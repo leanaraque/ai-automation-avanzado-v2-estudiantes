@@ -1,0 +1,243 @@
+{
+  "name": "Roble · Worker Extractor",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Worker: Extractor\nRecibe `consulta` e `intent`. Saca los datos duros de un pedido de compra.\nDevuelve `{ status, worker, data: { empresa, nombre, productos, cantidad_total, ciudad, medio_de_pago } }`.",
+        "height": 200,
+        "width": 520,
+        "color": 5
+      },
+      "id": "53f5f504-ebf1-5b5c-934c-5085f21246e2",
+      "name": "Nota Extractor",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "consulta",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "4e143a48-ef76-5b54-bc30-64c31f451881",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.consulta }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "empresa",
+              "type": "string",
+              "description": "Nombre de la empresa, hotel u oficina que hace el pedido, si lo menciona. Vacío si no.",
+              "required": false
+            },
+            {
+              "name": "nombre",
+              "type": "string",
+              "description": "Nombre de la persona que escribe, si lo menciona. Vacío si no.",
+              "required": false
+            },
+            {
+              "name": "productos",
+              "type": "string",
+              "description": "Productos y cantidades que pide, tal como los nombra el cliente.",
+              "required": false
+            },
+            {
+              "name": "cantidad_total",
+              "type": "number",
+              "description": "Suma de todas las unidades pedidas. 0 si no dice cantidades.",
+              "required": false
+            },
+            {
+              "name": "ciudad",
+              "type": "string",
+              "description": "Ciudad de entrega, si la menciona. Vacío si no.",
+              "required": false
+            },
+            {
+              "name": "medio_de_pago",
+              "type": "string",
+              "description": "Medio de pago o cuotas que menciona. Vacío si no.",
+              "required": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "78fe5261-ed6d-5ae5-a665-88e35da73dc7",
+      "name": "Extraer datos del pedido",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "d954580a-777d-57d6-bb59-537a89c05841",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        240,
+        220
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0894551a-7dfb-5046-ac84-8d755ec9ab6e",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "1fc0dc1a-aed6-5e35-a0b9-0c08639e4367",
+              "name": "worker",
+              "value": "extractor",
+              "type": "string"
+            },
+            {
+              "id": "dce35e5c-c6b5-5502-a18a-946dc7df42e4",
+              "name": "data",
+              "value": "={{ $json.output }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7d9193dc-384e-53f5-8095-9c0f7d9f549b",
+      "name": "Contrato de salida",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "286b1287-74db-5612-8020-018450cf4191",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "1fc0dc1a-aed6-5e35-a0b9-0c08639e4367",
+              "name": "worker",
+              "value": "extractor",
+              "type": "string"
+            },
+            {
+              "id": "608cdefd-0459-5454-89ab-4fc505537d0e",
+              "name": "data",
+              "value": "={{ { motivo: $json.error } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1c3f8b4f-d0e2-5fbe-98fb-3511af111e26",
+      "name": "Contrato de salida (error)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Extraer datos del pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer datos del pedido": {
+      "main": [
+        [
+          {
+            "node": "Contrato de salida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contrato de salida (error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extraer datos del pedido",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
