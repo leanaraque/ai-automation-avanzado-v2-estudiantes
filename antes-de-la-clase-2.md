@@ -1,6 +1,6 @@
 # Antes de la Clase 2 (lunes 19/10)
 
-En la Clase 2 vamos a convertir el agente del Módulo 1 en un equipo de agentes: un Manager que clasifica cada consulta y dos especialistas que trabajan para él. Para aprovechar la clase necesitás tres cosas listas. Te lleva unos 20 minutos.
+En la Clase 2 vamos a convertir el agente del Módulo 1 en un equipo de agentes: un Manager que clasifica cada consulta y dos especialistas que trabajan para él. Necesitás tres cosas. Si te falta alguna, completala en el break de la clase (unos 15 minutos) y, hasta entonces, seguí la clase mirando.
 
 | Qué | Para qué | Tiempo |
 |---|---|---|

@@ -1,5 +1,5 @@
 {
-  "name": "Roble · Manager",
+  "name": "Roble - Manager",
   "nodes": [
     {
       "parameters": {
@@ -65,7 +65,7 @@
     },
     {
       "parameters": {
-        "model": "openai/gpt-oss-20b",
+        "model": "openai/gpt-oss-120b",
         "options": {
           "temperature": 0.2
         }
@@ -126,7 +126,7 @@
           "__rl": true,
           "value": "",
           "mode": "list",
-          "cachedResultName": "Roble · Worker Redactor"
+          "cachedResultName": "Roble - Worker Redactor"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -238,7 +238,7 @@
           "__rl": true,
           "value": "",
           "mode": "list",
-          "cachedResultName": "Roble · Worker Extractor"
+          "cachedResultName": "Roble - Worker Extractor"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
