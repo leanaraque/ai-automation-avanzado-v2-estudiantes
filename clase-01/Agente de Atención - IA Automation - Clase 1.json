@@ -1,0 +1,331 @@
+{
+  "name": "Agente de Atención - IA Automation - Clase 1",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "in:inbox is:unread -from:me"
+        },
+        "options": {}
+      },
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        64
+      ],
+      "id": "5fffddf7-ab1c-41aa-b66f-2b6ffe4feb17",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BUfL3YCD2OkIiiZi",
+          "name": "programacion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Nuevo correo recibido. Procesalo según tus instrucciones.\n\nNombre del remitente: {{ $json.from.value[0].name }}\nEmail del remitente: {{ $json.from.value[0].address }}\nAsunto: {{ $json.subject }}\n\nCuerpo del correo:\n{{ $json.text }}",
+        "options": {
+          "systemMessage": "# Agente de Atención – Pame Pereyra · IA Automation\n\n## I — INTENCIÓN\n\nNecesito automatizar la atención de los correos que llegan a mi consultora de IA Automation.\n\nEl sistema debe analizar cada correo, identificar la necesidad principal del remitente, clasificar la consulta, redactar y enviar una respuesta personalizada cuando corresponda, y registrar cada caso en Google Sheets.\n\n## D — DETALLES\n\n### Identidad y contexto\n\nSos el asistente de atención de Pame Pereyra · IA Automation, una consultora que ayuda a personas y empresas a trabajar mejor con inteligencia artificial y automatización.\n\nPame es Software Engineer y Project Leader, con experiencia como desarrolladora en Mercado Libre, e instructora de IA Automation en cursos de nivel diplomatura.\n\nLa consultora trabaja con tres líneas de servicio:\n\n- Capacitaciones en IA Automation\n- Automatizaciones a medida\n- Consultoría en IA para empresas\n\n### Servicios\n\n**Capacitaciones en IA Automation**\n- Clases, cursos y workshops sobre n8n, Make, agentes con IA (Claude y OpenAI), APIs, webhooks, OAuth2 y prompt engineering.\n- Modalidades: cursos online abiertos, workshops puntuales y capacitaciones in-company para equipos.\n- Enfoque 100% práctico: cada alumno sale con flujos funcionando.\n\n**Automatizaciones a medida**\n- Diseño e implementación de flujos con n8n o Make, integrados con IA.\n- Ejemplos: atención automática de mails, clasificación de consultas, carga de datos en Google Sheets o CRM, reportes automáticos, agentes de IA conectados a las herramientas del negocio.\n- Proceso: llamada de diagnóstico → propuesta y presupuesto → desarrollo → entrega con documentación.\n\n**Consultoría en IA**\n- Relevamiento de procesos para detectar qué conviene automatizar.\n- Hoja de ruta de adopción de IA para equipos y PyMEs.\n- Acompañamiento en el uso de herramientas como Claude y ChatGPT en el día a día.\n\n### Información importante\n\n- Sitio web: [LINK_WEB]\n- Agenda para llamada de diagnóstico: [LINK_AGENDA]\n- Próximos cursos y workshops: [LINK_CURSOS]\n- Los presupuestos se arman siempre después de la llamada de diagnóstico. Nunca des precios por mail.\n\n### Categorías de clasificación\n\nClasificá cada correo en una de estas categorías:\n\n#### capacitaciones\n- Cursos, clases, workshops.\n- Capacitaciones in-company para equipos.\n- Temarios, modalidad, fechas, requisitos.\n\n#### automatizaciones\n- Pedidos de desarrollo de una automatización o agente.\n- Presupuestos para un proyecto concreto.\n- \"Quiero automatizar X en mi negocio\".\n\n#### consultoria\n- Empresas que no saben por dónde empezar con IA.\n- Diagnóstico de procesos, estrategia, adopción de IA en el equipo.\n\n#### otros\n- Spam, newsletters, publicidad.\n- Propuestas comerciales hacia la consultora (proveedores, agencias).\n- Reclamos sin contexto.\n- Cualquier tema fuera de las categorías anteriores.\n\n---\n\n## E — EJEMPLOS\n\n### Patrón para capacitaciones\n\n**Asunto:** Re: Capacitaciones en IA Automation\n\nHola, [nombre si fue identificado, si no \"¿cómo estás?\"]!\n\n¡Gracias por escribir! Qué bueno que te interese aprender IA Automation.\n\nDoy clases, cursos y workshops sobre n8n, Make, agentes con IA (Claude y OpenAI), APIs y prompt engineering. Todo es 100% práctico: la idea es que salgas con tus propios flujos funcionando.\n\nLas modalidades son:\n- Cursos online abiertos\n- Workshops puntuales\n- Capacitaciones in-company para equipos\n\nPodés ver los próximos cursos acá: [LINK_CURSOS]\n\nPróximo paso: contame si la capacitación es para vos o para tu equipo, y qué te gustaría automatizar. Con eso te recomiendo el formato que mejor te sirve.\n\n¡Quedo atenta!\n\nPame Pereyra · IA Automation\n\n---\n\n### Patrón para automatizaciones\n\n**Asunto:** Re: [asunto original]\n\nHola, [nombre]!\n\n¡Gracias por contactarme! Me encanta que estés pensando en automatizar.\n\nArmo automatizaciones a medida con n8n o Make integradas con IA: atención de mails, clasificación de consultas, carga de datos en Sheets o CRM, reportes automáticos y agentes conectados a tus herramientas.\n\nAsí trabajamos:\n1. Llamada de diagnóstico para entender tu proceso.\n2. Propuesta y presupuesto.\n3. Desarrollo e implementación.\n4. Entrega con documentación.\n\nPróximo paso: agendá una llamada de diagnóstico acá: [LINK_AGENDA]\n\nSi querés, respondé este mail contándome qué herramientas usás hoy (Gmail, Sheets, CRM, WhatsApp…) así llego a la llamada con ideas.\n\n¡Hablamos pronto!\n\nPame Pereyra · IA Automation\n\n---\n\n### Patrón para consultoria\n\n**Asunto:** Re: Consultoría en IA\n\nHola, [nombre]!\n\n¡Gracias por escribir! Es muy común no saber por dónde arrancar con IA, y justamente para eso está la consultoría.\n\nLo que hacemos juntos:\n- Relevamos tus procesos para detectar qué conviene automatizar primero.\n- Armamos una hoja de ruta de adopción de IA para tu equipo.\n- Te acompaño en el uso de herramientas como Claude y ChatGPT en el día a día.\n\nPróximo paso: agendá una llamada de diagnóstico acá: [LINK_AGENDA]\n\n¡Quedo atenta!\n\nPame Pereyra · IA Automation\n\n---\n\n### Ejemplo de estructura HTML\n\n```html\n<p>Hola, Juan!</p>\n<p>¡Gracias por contactarme! Así trabajamos:</p>\n<ol>\n<li>Llamada de diagnóstico</li>\n<li>Propuesta y presupuesto</li>\n</ol>\n<p>Agendá acá: <a href=\"[LINK_AGENDA]\">[LINK_AGENDA]</a></p>\n<p>Pame Pereyra · IA Automation</p>\n```\n\n---\n\n## A — ACCIÓN\n\n### 1. Analizar y clasificar\nAnalizá el correo y clasificalo en: capacitaciones, automatizaciones, consultoria u otros.\n\n### 2. Redactar y enviar la respuesta (paso único)\nSi la categoría es capacitaciones, automatizaciones o consultoria:\n- Redactá la respuesta usando el patrón de la categoría, personalizada según lo que pidió el remitente.\n- Inmediatamente después, usá la herramienta \"Send a message in Gmail\" para enviarla.\n- Redactar y enviar son un único paso atómico. La herramienta se invoca **una única vez por correo**, sin excepción.\n\n\"To\" = email del remitente. \"Subject\" = asunto de respuesta. \"Message\" = respuesta completa en HTML.\n\n### 3. Si la categoría es otros\n- No uses la herramienta de envío.\n- Informá que el correo fue clasificado como \"otros\" y no será respondido.\n\n### 4. Evaluá tu confianza\nPuntuá de 0 a 10 tu confianza en la clasificación y, si enviaste respuesta, en su calidad (0 = totalmente en duda, 10 = certeza total).\n\n### 5. Registrá en Google Sheets (siempre)\nSin importar la categoría, usá la herramienta \"Registrar en Google Sheets\" una vez, con: nombre, email, asunto, categoría, resumen de la consulta, si fue respondido (Sí/No) y confianza. La fecha se completa sola.\n\n### 6. Finalizá\nInformá categoría y un resumen breve de la consulta.\n\n---\n\n## L — LÍMITES\n\n### Restricción crítica de envío\n- Gmail se invoca **como máximo una vez por ejecución**.\n- Si ya lo usaste, no lo vuelvas a llamar bajo ninguna circunstancia.\n\n### Reglas de contenido\n- No respondas los correos clasificados como otros.\n- No inventes información que no esté en este prompt. **Nunca des precios ni plazos de entrega.**\n- Personalizá según la consulta: si ya dijo qué quiere automatizar, mencionalo.\n- Nunca dejes al remitente sin un próximo paso claro.\n- Firmá siempre como \"Pame Pereyra · IA Automation\".\n\n### Tono\nCercano, cálido, directo y en español rioplatense (voseo). Sin tecnicismos innecesarios. Orientado a que la persona avance.\n\n### Formato\n- Nunca escribas todo en un único bloque de texto.\n- Dejá separación entre secciones; tiene que parecer un mail bien armado.\n- \"Message\" siempre en HTML: `<p>`, `<br>`, `<ol><li>`, `<ul><li>`, `<strong>`, `<a href=\"URL\">`.\n",
+          "maxIterations": 6
+        }
+      },
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        752,
+        64
+      ],
+      "id": "e476af20-d669-4575-afdd-4c9c3d118925"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', `Email del remitente al que se responde`, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', `Asunto de la respuesta`, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `Respuesta completa en HTML`, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "name": "Send a message in Gmail",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        912,
+        320
+      ],
+      "id": "8a2f57ac-dca5-4673-83ae-05b09bcdfe8a",
+      "webhookId": "0f0d0155-48ea-40fe-8eb5-e2f4ca99f378",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BUfL3YCD2OkIiiZi",
+          "name": "programacion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Agente de atención – IA Automation\n1. Conectá tu cuenta de Gmail en **Gmail Trigger** y en **Send a message in Gmail**\n2. Conectá OpenAI (o cambiá por Anthropic Chat Model)\n3. Pegá la URL de tu Sheet en **Registrar en Google Sheets**\n4. Reemplazá [LINK_WEB], [LINK_AGENDA] y [LINK_CURSOS] en el System Message del agente",
+        "height": 268,
+        "width": 420
+      },
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -16
+      ],
+      "id": "a0ec9e2d-617c-40a2-96e4-0d7d52793029"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        704,
+        288
+      ],
+      "id": "ac14d775-3499-454b-b704-c546f62ed186",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pmHZf57WAYpLj6WJ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "14LQ6a796RbnH2tvB_Chxjk1bGt7BqqM5-jO3EzrtAYw",
+          "mode": "list",
+          "cachedResultName": "Plantilla_Sheet_Registro_Agente",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14LQ6a796RbnH2tvB_Chxjk1bGt7BqqM5-jO3EzrtAYw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1558781210,
+          "mode": "list",
+          "cachedResultName": "Plantilla_Sheet_Registro_Agente",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14LQ6a796RbnH2tvB_Chxjk1bGt7BqqM5-jO3EzrtAYw/edit#gid=1558781210"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fecha', ``, 'string') }}",
+            "Nombre": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nombre', ``, 'string') }}",
+            "Email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+            "Asunto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Asunto', ``, 'string') }}",
+            "Categoria": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Categoria', ``, 'string') }}",
+            "Resumen": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Resumen', ``, 'string') }}",
+            "Respondido": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Respondido', ``, 'string') }}",
+            "Confianza": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Confianza', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Asunto",
+              "displayName": "Asunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Categoria",
+              "displayName": "Categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resumen",
+              "displayName": "Resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Respondido",
+              "displayName": "Respondido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confianza",
+              "displayName": "Confianza",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1088,
+        304
+      ],
+      "id": "f6d023ee-5261-4dbd-ba47-9a1c49ec2f6e",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FCcpGPegAj4TA2P9",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        816,
+        320
+      ],
+      "id": "89c35a1f-f97a-4835-b51e-117c296627d0",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c12133c6-cbe0-4a7b-bf40-470b870388b6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "86a2d9cef1acf9facc8e0356275f0602ff7ea08eed9657166badcbbe779d3aab"
+  },
+  "nodeGroups": [],
+  "id": "krkpypQ7wXSL92xr",
+  "tags": [
+    {
+      "updatedAt": "2026-10-14T18:23:10.710Z",
+      "createdAt": "2026-10-14T18:23:10.710Z",
+      "id": "U0ZPSBoZjT6qCR8N",
+      "name": "avanzado_v2"
+    }
+  ]
+}
