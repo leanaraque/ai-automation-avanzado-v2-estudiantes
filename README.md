@@ -1,6 +1,6 @@
 # AI Automation Avanzado · Muebles Roble
 
-Material de las clases 2, 4, 6, 8, 9 y 10 del curso AI Automation Avanzado (Coderhouse). Todo el curso gira alrededor de un caso: **Muebles Roble**, una mueblería familiar de Córdoba que atiende consultas de clientes con un equipo de agentes en n8n.
+Material de las clases del curso AI Automation Avanzado (Coderhouse). Todo el curso gira alrededor de un caso: **Muebles Roble**, una mueblería familiar de Córdoba que atiende consultas de clientes con un equipo de agentes en n8n.
 
 | Carpeta | Qué tiene |
 |---|---|
