@@ -1,0 +1,170 @@
+{
+  "name": "Clase - Memoria de Largo Plazo (3 quejas = derivar a humano)",
+  "nodes": [
+    {
+      "parameters": { "options": {} },
+      "id": "a1",
+      "name": "1. Cliente escribe (Chat)",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "webhookId": "memoria-largo-plazo-demo"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "usuario_id", "value": "cliente_123", "type": "string" },
+            { "id": "s2", "name": "mensaje", "value": "={{ $json.chatInput }}", "type": "string" },
+            { "id": "s3", "name": "tipo_queja", "value": "={{ $json.chatInput.toLowerCase().includes('plataforma') ? 'falla_plataforma' : 'otra' }}", "type": "string" },
+            { "id": "s4", "name": "fecha", "value": "={{ $now.toISO() }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a2",
+      "name": "2. Datos del mensaje",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "mode": "url", "value": "PEGAR_URL_DE_TU_GOOGLE_SHEET" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Quejas" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "usuario_id": "={{ $json.usuario_id }}",
+            "tipo_queja": "={{ $json.tipo_queja }}",
+            "mensaje": "={{ $json.mensaje }}",
+            "fecha": "={{ $json.fecha }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "usuario_id", "displayName": "usuario_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "tipo_queja", "displayName": "tipo_queja", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "mensaje", "displayName": "mensaje", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "fecha", "displayName": "fecha", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a3",
+      "name": "3. Guardar queja (memoria externa)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "mode": "url", "value": "PEGAR_URL_DE_TU_GOOGLE_SHEET" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Quejas" },
+        "filtersUI": {
+          "values": [
+            { "lookupColumn": "usuario_id", "lookupValue": "={{ $('2. Datos del mensaje').item.json.usuario_id }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a4",
+      "name": "4. Leer historial del cliente",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [660, 300],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Datos del mensaje actual\nconst actual = $('2. Datos del mensaje').first().json;\n\n// Historial que vino de Google Sheets\nconst historial = $input.all().map(i => i.json);\n\n// Contamos quejas del MISMO tipo en los ultimos 7 dias\nconst haceUnaSemana = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);\nconst cantidad = historial.filter(q =>\n  q.tipo_queja === actual.tipo_queja &&\n  new Date(q.fecha) >= haceUnaSemana\n).length;\n\nconst escalar = actual.tipo_queja !== 'otra' && cantidad >= 3;\n\n// Las instrucciones del agente CAMBIAN segun la memoria\nconst system_prompt = escalar\n  ? `Sos un agente de soporte empatico. Este cliente ya reporto ${cantidad} veces esta semana el mismo problema (${actual.tipo_queja}). NO intentes resolverlo. Reconoce explicitamente que es la vez numero ${cantidad}, pedi disculpas y avisale que congelas la automatizacion y derivas su caso a un supervisor humano.`\n  : `Sos un agente de soporte amable. Ayuda al cliente con su consulta de forma breve y clara.`;\n\nreturn [{ json: { ...actual, cantidad, escalar, system_prompt } }];"
+      },
+      "id": "a5",
+      "name": "5. Contar quejas + armar instrucciones",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.escalar }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a6",
+      "name": "6. ¿3 o más quejas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "d1", "name": "derivado_a", "value": "supervisor_humano", "type": "string" },
+            { "id": "d2", "name": "automatizacion", "value": "congelada", "type": "string" }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a7",
+      "name": "7. Derivar a supervisor (simulado)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1320, 180]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje }}",
+        "options": {
+          "systemMessage": "={{ $json.system_prompt }}"
+        }
+      },
+      "id": "a8",
+      "name": "8. Agente de soporte",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "model": { "__rl": true, "mode": "list", "value": "gpt-4o-mini" },
+        "options": {}
+      },
+      "id": "a9",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1560, 520]
+    }
+  ],
+  "connections": {
+    "1. Cliente escribe (Chat)": { "main": [[{ "node": "2. Datos del mensaje", "type": "main", "index": 0 }]] },
+    "2. Datos del mensaje": { "main": [[{ "node": "3. Guardar queja (memoria externa)", "type": "main", "index": 0 }]] },
+    "3. Guardar queja (memoria externa)": { "main": [[{ "node": "4. Leer historial del cliente", "type": "main", "index": 0 }]] },
+    "4. Leer historial del cliente": { "main": [[{ "node": "5. Contar quejas + armar instrucciones", "type": "main", "index": 0 }]] },
+    "5. Contar quejas + armar instrucciones": { "main": [[{ "node": "6. ¿3 o más quejas?", "type": "main", "index": 0 }]] },
+    "6. ¿3 o más quejas?": {
+      "main": [
+        [{ "node": "7. Derivar a supervisor (simulado)", "type": "main", "index": 0 }],
+        [{ "node": "8. Agente de soporte", "type": "main", "index": 0 }]
+      ]
+    },
+    "7. Derivar a supervisor (simulado)": { "main": [[{ "node": "8. Agente de soporte", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "8. Agente de soporte", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
