@@ -1,0 +1,375 @@
+{
+  "name": "Roble - Casilla de soporte",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Casilla de soporte de Muebles Roble\nCada correo nuevo que menciona \"Roble\" se limpia, se redacta una respuesta y queda como **borrador** en Gmail: Julián la revisa y la envía (control humano). Al final avisa en Slack.\n\nEn clase, el disparador solo lee correos con \"Roble\" (Filters > Search). En la casilla real de soporte, ese filtro se borra.",
+        "height": 260,
+        "width": 600,
+        "color": 5
+      },
+      "id": "b4f0001c-be42-5c22-a08a-54890a113d21",
+      "name": "Nota casilla",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "Roble",
+          "readStatus": "both"
+        },
+        "options": {}
+      },
+      "id": "17ad391f-e0be-58d1-99ed-b01b0a02904b",
+      "name": "Correo nuevo en la casilla",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2271afa3-cca1-5a2c-a87d-dec9b82e9c4e",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "Auto-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "83d208d6-f149-5dff-8b61-c910c99e4561",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "Out of office",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "0f4bf4f2-c5e1-5d27-aee9-95776d45f9b8",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "Undeliverable",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "c76d4d63-07f1-51ce-a9c9-1f885dd2835e",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "Fuera de la oficina",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "872cac5e-52e8-5199-aa8e-2e12e24e1453",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "Respuesta automática",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "0d9842a8-41ad-57d1-a616-0bb6fb3cd213",
+              "leftValue": "={{ $json.from.value[0].address }}",
+              "rightValue": "no-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "5901cf10-778f-5c12-9352-8e8106934a3d",
+              "leftValue": "={{ $json.from.value[0].address }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "id": "0f41d046-9a5a-5b6b-aefc-f3ea07c3a3a4",
+      "name": "¿Correo automático o sin remitente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5ef43b77-02e4-5d7e-9314-8e1d9e257798",
+      "name": "No responder",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        480,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cb76420f-2e19-581a-b96b-87b3c316f6db",
+              "name": "From",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "807eeb6f-2780-59da-b18e-268a265a1c46",
+              "name": "Nombre",
+              "value": "={{ $json.from.value[0].name }}",
+              "type": "string"
+            },
+            {
+              "id": "d7cda24d-2e29-5b27-a4f0-c9efcc0a9538",
+              "name": "Subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "14d3acac-2e76-5abd-9e55-ec6e18f59220",
+              "name": "BodyText",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "a2580d62-5f3d-5be9-a4e9-d971d2fc0aa0",
+              "name": "ThreadId",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2fac5f32-22a0-5f13-9784-2289c4a3a3c3",
+      "name": "Limpiar el correo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Preparás borradores de respuesta para la casilla de soporte de Muebles Roble, una mueblería familiar de Córdoba. Julián, del equipo, revisa cada borrador antes de enviarlo.\nUsá SOLO estos datos de la tienda:\n- Showroom: lunes a viernes de 9 a 18, sábados de 9 a 13.\n- Precios: mesa de comedor Roble 160 cm $890.000; silla Nórdica $120.000; sofá Lino 3 cuerpos $1.450.000; rack TV Roble 180 $520.000; escritorio Home Office $380.000.\n- Envíos: Córdoba capital de 48 a 72 h hábiles, gratis desde $500.000. Interior del país de 5 a 7 días hábiles, con costo según destino.\n- Devoluciones: 10 días corridos desde la entrega, sin uso y en su embalaje original. Los muebles a medida no tienen devolución.\n- Garantía: 12 meses en estructura y 6 meses en tapizados, por falla de fabricación.\n- Pagos: hasta 12 cuotas sin interés con tarjetas bancarias seleccionadas; 10% de descuento por transferencia.\n\nReglas:\n- Español rioplatense, cálido y directo. Saludá por el nombre si lo tenés. Máximo 5 oraciones.\n- Si el cliente necesita algo que no está en estos datos (presupuesto con descuento por cantidad, estado de un pedido, un reclamo), no lo inventes: decí que Julián lo revisa y le responde hoy.\n- Escribí solo el cuerpo del correo, sin asunto. Firmá \"Equipo de Muebles Roble\". Sin emojis.\n\nNombre del cliente: {{ $('Limpiar el correo').first().json.Nombre }}\nAsunto: {{ $('Limpiar el correo').first().json.Subject }}\nCorreo del cliente:\n###\n{{ $('Limpiar el correo').first().json.BodyText }}\n###",
+        "batching": {}
+      },
+      "id": "8d1030e2-9239-56e8-aace-7fb0c74cd27a",
+      "name": "Redactar respuesta",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        720,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "fe8fd53c-6b21-5795-bdfc-d9a7eaf7f08c",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        720,
+        220
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Limpiar el correo').first().json.Subject.replace(/^re:\\s*/i, '') }}",
+        "emailType": "text",
+        "message": "={{ $('Redactar respuesta').first().json.text }}",
+        "options": {
+          "threadId": "={{ $('Limpiar el correo').first().json.ThreadId }}",
+          "sendTo": "={{ $('Limpiar el correo').first().json.From }}"
+        }
+      },
+      "id": "eba45d1d-f92e-5d22-ba4c-f156d3655adc",
+      "name": "Guardar borrador en Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1060,
+        0
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#operaciones",
+          "mode": "name"
+        },
+        "text": "=Correo nuevo en la casilla de soporte\nCliente: {{ $('Limpiar el correo').first().json.Nombre }} ({{ $('Limpiar el correo').first().json.From }})\nAsunto: {{ $('Limpiar el correo').first().json.Subject }}\nBorrador listo para revisar en Gmail.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "132aa8b1-6e62-53bc-9c52-fee6287ac908",
+      "name": "Avisar en Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1280,
+        0
+      ],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "",
+          "name": "Slack"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Correo nuevo en la casilla": {
+      "main": [
+        [
+          {
+            "node": "¿Correo automático o sin remitente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Correo automático o sin remitente?": {
+      "main": [
+        [
+          {
+            "node": "No responder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Limpiar el correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar el correo": {
+      "main": [
+        [
+          {
+            "node": "Redactar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Redactar respuesta",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar respuesta": {
+      "main": [
+        [
+          {
+            "node": "Guardar borrador en Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar borrador en Gmail": {
+      "main": [
+        [
+          {
+            "node": "Avisar en Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
