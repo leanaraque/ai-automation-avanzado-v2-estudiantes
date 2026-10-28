@@ -1,0 +1,393 @@
+{
+  "name": "Clase 5 · Roble Mueblería · Agente RAG (LlamaParse + Supabase)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Roble Mueblería · Cargar manual de políticas",
+        "formDescription": "Subí la versión vigente del manual en PDF. Reemplaza la anterior.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "manual",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "57bc7fe3-5ebb-4d22-be85-22b6d93edf85",
+      "name": "1. Subir manual (formulario)",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "cca0e5bd-ae57-4ba7-b5f7-02d413ff3553"
+    },
+    {
+      "parameters": {
+        "operation": "parse",
+        "tier": "cost_effective",
+        "version": "latest",
+        "inputType": "binaryFile",
+        "inputDataFieldName": "manual"
+      },
+      "id": "94a46ac9-4e11-47f5-8ea1-b3efdbfefd7f",
+      "name": "2. LlamaParse: PDF a texto",
+      "type": "@llamaindex/n8n-nodes-llamacloud.llamaParsePlatform",
+      "typeVersion": 1,
+      "position": [
+        260,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "d4d1baf7-6526-4610-af64-8a76a5e9910f",
+      "name": "3. Guardar fragmentos en Supabase",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "5378fd35-7238-4174-8104-272c6d45d630",
+      "name": "Embeddings OpenAI (carga)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "fuente",
+                "value": "Manual_Politicas_Roble_2026"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fe52e0d8-64e4-4d7d-a108-7b67a82c0a92",
+      "name": "Cargador de documento",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 600,
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "id": "32aeab5f-3f40-4db8-8d32-e4b617c259c9",
+      "name": "Corte en fragmentos (chunking)",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        780,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8fae6353-87db-482a-9c3e-bd0f62f56335",
+      "name": "Chat de prueba (cliente)",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        900
+      ],
+      "webhookId": "94d91b92-0c7c-4f82-aee2-6f47c8a8f858"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Sos el asistente de atención al cliente de Roble Mueblería (muebles de madera maciza, tienda online y showroom en CABA).\n\n## REGLAS DE VERDAD (prioridad máxima)\n- PROHIBIDO usar conocimiento externo. Todo lo que sabés del negocio (envíos, plazos, costos, armado, cambios, devoluciones, arrepentimiento, garantía, medios de pago, cuotas, descuentos, muebles a medida, maderas, horarios, cuidado de la madera) sale ÚNICAMENTE de los fragmentos que devuelve la herramienta buscar_politicas_roble.\n- Ante CUALQUIER pregunta sobre esos temas, usá la herramienta ANTES de responder. Nunca respondas de memoria.\n- Respondé 100% en base a los fragmentos recuperados. No completes, no supongas, no redondees.\n\n## REGLA \"NO SÉ\" (contingencia)\nSi la respuesta no aparece de forma explícita en los fragmentos, respondé exactamente:\n\"No sé: ese dato no figura en nuestro manual de políticas. ¿Te ayudo con otra consulta?\"\n\n## CITA DE FUENTE (obligatoria)\nCerrá cada respuesta basada en el manual con la etiqueta:\n[Manual: Manual_Politicas_Roble_2026, punto N]\ndonde el nombre del manual es el metadato \"fuente\" del fragmento y N es el número de sección que aparece en el texto del fragmento (por ejemplo 3.2). Si el fragmento no muestra número de sección, poné solo [Manual: Manual_Politicas_Roble_2026]. PROHIBIDO inventar nombres de archivo o números de sección.\n\n## CUÁNDO NO BUSCAR\nSaludos, agradecimientos y despedidas: respondé con cordialidad, sin usar la herramienta.\n\n## ESTILO\n- Tono cálido y claro, en español rioplatense (voseo).\n- Máximo 3 líneas por respuesta.\n- Si el cliente te dijo su nombre en la charla, usalo."
+        }
+      },
+      "id": "cdd55d3c-954e-45b4-b06a-85381ef6a3ee",
+      "name": "AI Agent: asistente RAG de Roble",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "45caad64-5d73-4824-befa-c45905b775ef",
+      "name": "Claude (modelo)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        140,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 6
+      },
+      "id": "6a13404d-df44-4349-bb56-e77ed6880533",
+      "name": "Memoria de la charla (M3)",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Usá esta herramienta SIEMPRE que el cliente pregunte por envíos, plazos o costos de entrega, armado, retiro en showroom, cambios, devoluciones, arrepentimiento, fallas, garantía, medios de pago, cuotas, descuentos, muebles a medida, maderas, horarios o cuidado de la madera. Busca en el Manual de Políticas 2026 de Roble Mueblería y devuelve los fragmentos más relevantes.",
+        "tableName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "documents"
+        },
+        "topK": 4,
+        "includeDocumentMetadata": true,
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "428483e0-6e82-4320-8775-563a9112dab2",
+      "name": "buscar_politicas_roble",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        520,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "5fddfa1c-4fd5-479b-85cb-500f42492395",
+      "name": "Embeddings OpenAI (consulta)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        600,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## A · CARGA DEL MANUAL (se corre 1 vez)\nPDF → **LlamaParse** lo pasa a texto respetando títulos y tablas → se corta en fragmentos → se guardan como vectores en **Supabase** (tabla documents).\nPara actualizar el manual: vaciá la tabla en Supabase (truncate) y volvé a subir el PDF.",
+        "height": 200,
+        "width": 700,
+        "color": 5
+      },
+      "id": "fa6c5489-fb4d-4595-b455-1ca8ab1c82cb",
+      "name": "Nota A",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Chunking en vivo\n**600** caracteres por fragmento, **100** de solapamiento.\nProbá con 150: la regla de devoluciones queda partida y el agente responde mal.",
+        "height": 200,
+        "width": 380,
+        "color": 4
+      },
+      "id": "4755dde4-4583-43a5-8358-36db7f5844f2",
+      "name": "Nota chunking",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## B · CONSULTA (chat)\nEl agente **busca antes de hablar**, dice **\"No sé\"** si no está y **cita la fuente**.\n**Top K = 4** en la herramienta. **Minimum Score = 0,30** en la función match_documents de Supabase.\nUsá el **mismo modelo de embeddings** que en la carga.",
+        "height": 200,
+        "width": 700,
+        "color": 6
+      },
+      "id": "b061bd09-6e2a-49b6-a1ee-2f53e997ce78",
+      "name": "Nota B",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        640
+      ]
+    }
+  ],
+  "connections": {
+    "1. Subir manual (formulario)": {
+      "main": [
+        [
+          {
+            "node": "2. LlamaParse: PDF a texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. LlamaParse: PDF a texto": {
+      "main": [
+        [
+          {
+            "node": "3. Guardar fragmentos en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI (carga)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "3. Guardar fragmentos en Supabase",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargador de documento": {
+      "ai_document": [
+        [
+          {
+            "node": "3. Guardar fragmentos en Supabase",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corte en fragmentos (chunking)": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Cargador de documento",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat de prueba (cliente)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: asistente RAG de Roble",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude (modelo)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: asistente RAG de Roble",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria de la charla (M3)": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent: asistente RAG de Roble",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_politicas_roble": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: asistente RAG de Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI (consulta)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "buscar_politicas_roble",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
