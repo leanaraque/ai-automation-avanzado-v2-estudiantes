@@ -210,10 +210,10 @@
             {
               "id": "fc9a055d-0f75-5fa5-991f-ab58646be5bb",
               "leftValue": "={{ $json.text }}",
-              "rightValue": "Amara.org",
+              "rightValue": "^\\s*([Gg]racias[^?¿]{0,20}|.*[Aa]mara\\.org.*|[Ss]ubt[ií]tulos.*)$",
               "operator": {
                 "type": "string",
-                "operation": "contains"
+                "operation": "regex"
               }
             }
           ],
