@@ -14,3 +14,8 @@ Material de las clases del curso AI Automation Avanzado (Coderhouse). Todo el cu
 | `clase-04/inicio/` | Punto de partida: la casilla de soporte (Gmail, borrador y Slack) |
 | `clase-04/pasos/paso-N/` | Cómo queda el workflow después de cada paso de la clase |
 | `clase-04/final/` | El workflow completo: el molde de la pre-entrega del Módulo 4 |
+| `clase-05/` | RAG con el Manual de Políticas 2026 (Clase 5) |
+| `antes-de-la-clase-6.md` | Lo que tenés que tener listo antes de la Clase 6 (bot de Telegram, ElevenLabs y el nodo instalado) |
+| `clase-06/inicio/` | Punto de partida: el circuito de voz por Telegram |
+| `clase-06/pasos/paso-1/` | El circuito con el IF de contingencia (el Tu turno de la clase) |
+| `clase-06/final/` | El workflow completo de la Clase 6 |
