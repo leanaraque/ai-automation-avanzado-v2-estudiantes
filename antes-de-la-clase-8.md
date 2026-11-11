@@ -5,7 +5,7 @@ En la Clase 8 medimos el agente de Muebles Roble con casos de oro y métricas de
 | Qué | Para qué | Tiempo |
 |---|---|---|
 | 1. n8n **Cloud** con tu credencial de Groq | Correr la medición y el juez | 0 a 5 min |
-| 2. Un bot de Telegram para el "equipo" y tu Chat ID | Que n8n te pida aprobar una respuesta y espere tu decisión | 5 min |
+| 2. Un bot de Telegram para el "equipo" y tu Chat ID | Que n8n te pida aprobar una respuesta y espere tu decisión. En clase lo muestra el profesor; vos lo usás en la pre-entrega | 5 min |
 
 ## 1. n8n Cloud y Groq
 
