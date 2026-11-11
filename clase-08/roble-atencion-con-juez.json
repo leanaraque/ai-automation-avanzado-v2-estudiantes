@@ -1,0 +1,692 @@
+{
+  "name": "Roble - Atención con juez",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Atención con juez de Muebles Roble\nEl agente propone una respuesta; el **juez** (sub-workflow `Roble - Juez`) la revisa antes de que salga.\n\n**Aceptar:** sale al cliente. **Corregir:** vuelve al agente con la crítica (máximo 2 reintentos). **Escalar:** el equipo aprueba o rechaza desde Telegram y n8n espera la respuesta.\n\nEl umbral lo programa n8n en el Switch, no el juez.",
+        "height": 300,
+        "width": 760,
+        "color": 5
+      },
+      "id": "ad5e5e04-e691-55c5-99cb-57184df7080b",
+      "name": "Nota atención",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "b59fa61a-ac09-5b5d-8a48-0521f7ecc624",
+      "name": "Mensaje del cliente",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "bb60502d-919d-5170-923e-e7c760f97b99"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "32df04c4-5432-5d16-967c-8d70fcddab59",
+              "name": "pregunta",
+              "value": "={{ $json.pregunta ?? $json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "e1fb7de8-1918-5f97-999b-060680caeefa",
+              "name": "intento",
+              "value": "={{ $json.intento ?? 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "bf231019-1e0b-5d36-a4be-04a63e470170",
+              "name": "critica",
+              "value": "={{ $json.critica ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "67e351c0-1213-538c-ad92-3ae3d4f36821",
+      "name": "Preparar intento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.pregunta }}{{ $json.critica ? '\\n\\nTu respuesta anterior fue rechazada por el revisor: ' + $json.critica + '\\nEscribí una nueva versión corrigiendo esos puntos.' : '' }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Sos el asistente de atención al cliente de Muebles Roble, por chat.\n\n## Manual de Políticas 2026 (tu única fuente)\n1. Muebles Roble fabrica y vende muebles de madera maciza: mesas, sillas, placares, camas, bibliotecas y muebles a medida. Vende por la tienda online y en el showroom de Villa Crespo, en la Ciudad de Buenos Aires.\n1.1 Horarios del showroom: lunes a viernes de 10 a 19 h. Sábados de 10 a 14 h. Domingos y feriados, cerrado.\n1.2 Canales: correo, con respuesta en hasta 24 h hábiles. WhatsApp, de lunes a viernes de 9 a 18 h.\n2.1 Envíos (días hábiles desde la confirmación del pago, productos en stock): Ciudad de Buenos Aires, 3 a 5 días, gratis en compras desde 400.000 pesos y si no 18.000 pesos, con armado incluido. Gran Buenos Aires, 5 a 7 días, 28.000 pesos, con armado incluido. Interior del país, 7 a 12 días, a cargo del cliente según el transporte, sin armado. Patagonia y Tierra del Fuego, 10 a 15 días, a cargo del cliente según el transporte, sin armado.\n2.2 Retiro en el showroom: sin costo. El pedido queda disponible 15 días corridos desde el aviso.\n2.3 Entregas en planta baja o con ascensor apto. Por escalera o con soga se cotiza aparte.\n3.1 Arrepentimiento (compras online): 10 días corridos desde que recibiste el producto, sin motivo y sin costo, sin uso y en su embalaje original. Los muebles a medida no tienen arrepentimiento.\n3.2 Falla de fábrica o daño del transporte: 30 días corridos desde la entrega para avisar. Reparación, cambio o reembolso total, a elección del cliente. Se pide el número de pedido y fotos.\n3.3 Cambios por gusto: 30 días corridos desde la entrega, sin uso y en su embalaje original. El flete de ida y vuelta lo paga el cliente. Liquidación y outlet no tienen cambio por gusto.\n4. Garantía: 12 meses por defectos de fabricación en la estructura y los herrajes, desde la entrega. No cubre humedad, sol directo, golpes, mal uso ni arreglos de terceros. Que el aceite natural cambie de tono no es una falla.\n5. Pagos: tarjeta de crédito hasta 6 cuotas sin interés con bancos adheridos y hasta 12 con interés. Transferencia, 10% de descuento. Efectivo, solo en el showroom, 10% de descuento. Mercado Pago, precio de lista con las cuotas de su promoción vigente. Los descuentos no se suman a otras promociones.\n6.1 Muebles a medida: seña del 50% y el saldo antes de la entrega. Fabricación de 30 a 45 días hábiles desde que se aprueban el plano y la seña.\n6.2 Maderas: paraíso, eucalipto grandis, pino macizo y roble americano. El roble americano tiene un recargo del 25%.\n6.3 Los muebles a medida no tienen cambio ni devolución, salvo falla de fábrica.\n7. Cuidado: paño apenas húmedo y secar enseguida. Nada de alcohol, siliconas ni lustramuebles en aerosol. Aceite de lino o cera de abejas una vez por año.\n\n## Reglas\n- Respondé solo con datos del manual. Si el dato no está, decí: \"No tengo ese dato. Te paso con Julián, del equipo.\"\n- Máximo 3 oraciones. Sin enlaces ni emojis.\n- Nunca prometas reembolsos, descuentos ni plazos que el manual no diga.\n- Español rioplatense, cálido y directo."
+            }
+          ]
+        }
+      },
+      "id": "14a9baff-af15-55cc-a533-8bf6a8618ebf",
+      "name": "Agente de atención",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        440,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "b91f4e43-5144-578f-b1b1-8733ee185cf7",
+      "name": "Groq (agente)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        440,
+        220
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0d53fb8d-1ab4-55a0-87b5-593f64c2c699",
+              "name": "pregunta",
+              "value": "={{ $('Preparar intento').item.json.pregunta }}",
+              "type": "string"
+            },
+            {
+              "id": "e45d95b3-4438-5364-a232-b174dab70b47",
+              "name": "intento",
+              "value": "={{ $('Preparar intento').item.json.intento }}",
+              "type": "number"
+            },
+            {
+              "id": "b0a510e9-db6d-5b5e-8d7a-d10779a27752",
+              "name": "respuesta",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e85aba85-281e-5434-a78d-dfb0b2359aae",
+      "name": "Respuesta propuesta",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Roble - Juez"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pregunta": "={{ $json.pregunta }}",
+            "respuesta": "={{ $json.respuesta }}",
+            "intento": "={{ $json.intento }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "pregunta",
+              "displayName": "pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "respuesta",
+              "displayName": "respuesta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "intento",
+              "displayName": "intento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "eb3414bf-b32d-57ff-9ed4-8642ba1a5022",
+      "name": "Revisar con el juez",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6c515712-3c87-54ee-a82e-efd08dcc5768",
+                    "leftValue": "={{ $json.pregunta.toLowerCase() }}",
+                    "rightValue": "devuel|reembolso|la plata|mi dinero|abogad|defensa del consumidor|denuncia|ignor[aá] (tus|las) instrucciones|olvid[aá] (tus|las) instrucciones",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Riesgo (regla dura)"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a544ad0f-a55d-52a3-aaca-4e6fd8ee1f81",
+                    "leftValue": "={{ $json.estado_veredicto }}",
+                    "rightValue": "ACEPTADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "id": "d8046338-e95d-5ca4-b180-21279d69aae2",
+                    "leftValue": "={{ $json.exactitud_factual }}",
+                    "rightValue": 4,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  },
+                  {
+                    "id": "967ff374-0634-5925-83c0-4d4384f4b0d4",
+                    "leftValue": "={{ $json.respuesta.length }}",
+                    "rightValue": 300,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Aceptar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c40b7511-1696-5636-9669-b48fbbb0adf6",
+                    "leftValue": "={{ $json.estado_veredicto }}",
+                    "rightValue": "RECHAZADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  },
+                  {
+                    "id": "8d044696-25ea-5df2-9584-3ee806bf9624",
+                    "leftValue": "={{ $json.intento }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Corregir"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Escalar"
+        }
+      },
+      "id": "02b5ad8e-b940-512e-bf8f-43516dcafe07",
+      "name": "¿Qué decidió el juez?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a2990f55-3ffb-5f33-81a3-fa970e4dfd11",
+              "name": "output",
+              "value": "={{ $json.respuesta }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3973eff0-5acf-5b94-b8ff-fd711b4cb5f9",
+      "name": "Responder al cliente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9cd267bd-5c47-52d7-939b-fc6b6bbafb4a",
+              "name": "pregunta",
+              "value": "={{ $json.pregunta }}",
+              "type": "string"
+            },
+            {
+              "id": "a938a112-9554-503a-9c06-6d35a0a48a87",
+              "name": "intento",
+              "value": "={{ $json.intento + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "df53959d-c950-5fcd-9726-50ad600c57bc",
+              "name": "critica",
+              "value": "={{ [$json.errores, $json.respuesta.length > 300 ? 'La respuesta tiene ' + $json.respuesta.length + ' caracteres y el máximo es 300' : ''].filter(x => x).join(' | ') || $json.justificacion }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2571a28e-d7a2-5183-9877-9229a4d4a793",
+      "name": "Preparar reintento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ab44f19-8be5-5cec-87c7-80b551adff2c",
+              "name": "output",
+              "value": "Gracias por tu consulta. La revisa una persona del equipo y te respondemos en breve.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "a5c2a74e-732e-5961-9a82-dadcffe0d48b",
+      "name": "Avisar al cliente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "PEGAR_ACA_EL_CHAT_ID_DEL_EQUIPO",
+        "message": "=Revisión humana - Muebles Roble\n\nCliente: {{ $json.pregunta }}\n\nRespuesta propuesta: {{ $json.respuesta }}\n\nJuez: {{ $json.estado_veredicto }} (exactitud {{ $json.exactitud_factual }} de 5, intento {{ $json.intento }})\nMotivo: {{ $json.justificacion }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Aprobar",
+            "disapproveLabel": "Rechazar"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "limitType": "afterTimeInterval",
+              "resumeAmount": 30,
+              "resumeUnit": "minutes"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "11923c2a-c759-5cc6-85b2-fdd4d41830c0",
+      "name": "Pedir aprobación al equipo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1580,
+        220
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram Equipo Roble"
+        }
+      },
+      "webhookId": "ad36796f-79f3-5580-a575-e8ab38eef3da"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4005c480-f1e4-5f18-99d9-b78b542b6889",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "b58d4a41-ea33-543f-acab-03587fda873c",
+      "name": "¿El equipo aprobó?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1800,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0fd276b9-b8eb-5ab3-b1d5-7ef1d9ce98b2",
+              "name": "output",
+              "value": "={{ $('Avisar al cliente').last().json.respuesta }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f29d902a-aa42-5ed1-8e48-c3d08d0dc4fe",
+      "name": "Respuesta aprobada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2020,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5897d271-25b3-5956-a81a-815ed921d485",
+              "name": "output",
+              "value": "Gracias por escribirnos. Julián, del equipo, revisa tu consulta y te responde hoy.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b6dee317-4931-559a-a109-8242f9a3353f",
+      "name": "Derivar a Julián",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2020,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Mensaje del cliente": {
+      "main": [
+        [
+          {
+            "node": "Preparar intento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar intento": {
+      "main": [
+        [
+          {
+            "node": "Agente de atención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq (agente)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente de atención",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente de atención": {
+      "main": [
+        [
+          {
+            "node": "Respuesta propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta propuesta": {
+      "main": [
+        [
+          {
+            "node": "Revisar con el juez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar con el juez": {
+      "main": [
+        [
+          {
+            "node": "¿Qué decidió el juez?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Qué decidió el juez?": {
+      "main": [
+        [
+          {
+            "node": "Avisar al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar reintento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar al cliente": {
+      "main": [
+        [
+          {
+            "node": "Pedir aprobación al equipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar reintento": {
+      "main": [
+        [
+          {
+            "node": "Preparar intento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir aprobación al equipo": {
+      "main": [
+        [
+          {
+            "node": "¿El equipo aprobó?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿El equipo aprobó?": {
+      "main": [
+        [
+          {
+            "node": "Respuesta aprobada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Derivar a Julián",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

@@ -17,3 +17,9 @@ Material de las clases del curso AI Automation Avanzado (Coderhouse). Todo el cu
 | `clase-05/` | RAG con el Manual de Políticas 2026 (Clase 5) |
 | `antes-de-la-clase-6.md` | Lo que tenés que tener listo antes de la Clase 6 (bot de Telegram, ElevenLabs y el nodo instalado) |
 | `clase-06/final/` | El workflow completo de la Clase 6: voz por Telegram con el IF de contingencia (se importa tal cual) |
+| `clase-07/` | Agentes especializados por industria: cuaderno de ejercicios y flujos de ejemplo (Clase 7) |
+| `antes-de-la-clase-8.md` | Lo que tenés que tener listo antes de la Clase 8 (Groq y el bot del equipo con tu Chat ID) |
+| `clase-08/roble-medicion-ab.json` | Medición A/B: casos de oro, métricas de RAGAS, costo real y tablero de negocio |
+| `clase-08/roble-juez.json` | El juez (sub-workflow) con salida JSON |
+| `clase-08/roble-atencion-con-juez.json` | Atención con juez: regla dura, aceptar, corregir y aprobación del equipo por Telegram |
+| `clase-08/preguntas-de-entrevista.md` | Medir y vender un agente: las preguntas de entrevista con sus respuestas |

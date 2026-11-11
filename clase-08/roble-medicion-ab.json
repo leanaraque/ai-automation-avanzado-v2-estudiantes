@@ -1,0 +1,253 @@
+{
+  "name": "Roble - Medición A/B",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Medición A/B de Muebles Roble\n5 **casos de oro** (pregunta + fragmentos que trajo el buscador + respuesta correcta) x 2 arquitecturas: **A** = `openai/gpt-oss-20b`, **B** = `openai/gpt-oss-120b`.\n\nUn **juez** (`openai/gpt-oss-120b`) extrae afirmaciones y fragmentos útiles; el **código** calcula las métricas de RAGAS: fidelidad, relevancia, precisión y recall del contexto.\n\nEl costo sale de `usage` de Groq: tokens reales, incluidos los de razonamiento.\n\nResultado: abrir **Calcular métricas** (10 corridas) y **Tablero A/B y negocio** (A contra B, en dinero).",
+        "height": 340,
+        "width": 760,
+        "color": 5
+      },
+      "id": "151c8b55-120f-57f5-b991-fd9b3070422d",
+      "name": "Nota medición",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -420
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b6ecbb3f-603b-5afa-b7e9-8ebdb1e14908",
+      "name": "Correr la medición",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Casos de oro: lo que el equipo sabe que es correcto. Agregá los tuyos.\nreturn [\n  {\n    \"caso\": \"C1\",\n    \"pregunta\": \"¿Cuánto sale el envío a Palermo?\",\n    \"contexto_ids\": [\n      \"2.1\",\n      \"2.2\"\n    ],\n    \"contexto\": \"[2.1] 2.1 Envíos (días hábiles desde la confirmación del pago, productos en stock): Ciudad de Buenos Aires, 3 a 5 días, gratis en compras desde 400.000 pesos y si no 18.000 pesos, con armado incluido. Gran Buenos Aires, 5 a 7 días, 28.000 pesos, con armado incluido. Interior del país, 7 a 12 días, a cargo del cliente según el transporte, sin armado. Patagonia y Tierra del Fuego, 10 a 15 días, a cargo del cliente según el transporte, sin armado.\\n[2.2] 2.2 Retiro en el showroom: sin costo. El pedido queda disponible 15 días corridos desde el aviso.\",\n    \"referencia\": \"En la Ciudad de Buenos Aires el envío es gratis en compras desde 400.000 pesos y, si no, cuesta 18.000 pesos, con armado incluido. Llega en 3 a 5 días hábiles.\",\n    \"debe\": [\n      \"18[.\\\\s]?000|dieciocho mil\",\n      \"400[.\\\\s]?000|cuatrocientos mil\"\n    ],\n    \"no_debe\": [],\n    \"que_ensena\": \"Caso feliz: el buscador trae el fragmento correcto primero\"\n  },\n  {\n    \"caso\": \"C2\",\n    \"pregunta\": \"Compré una mesa por la tienda online hace una semana y me arrepentí. ¿La puedo devolver?\",\n    \"contexto_ids\": [\n      \"3.3\",\n      \"3.1\"\n    ],\n    \"contexto\": \"[3.3] 3.3 Cambios por gusto: 30 días corridos desde la entrega, sin uso y en su embalaje original. El flete de ida y vuelta lo paga el cliente. Liquidación y outlet no tienen cambio por gusto.\\n[3.1] 3.1 Arrepentimiento (compras online): 10 días corridos desde que recibiste el producto, sin motivo y sin costo, sin uso y en su embalaje original. Los muebles a medida no tienen arrepentimiento.\",\n    \"referencia\": \"Sí. Tenés 10 días corridos desde que recibiste la mesa para arrepentirte, sin motivo y sin costo, si está sin uso y en su embalaje original.\",\n    \"debe\": [\n      \"10\\\\s*d[ií]as|diez\\\\s+d[ií]as\"\n    ],\n    \"no_debe\": [],\n    \"que_ensena\": \"Precisión del contexto: el fragmento útil (3.1) llega segundo\"\n  },\n  {\n    \"caso\": \"C3\",\n    \"pregunta\": \"¿En cuántas cuotas sin interés puedo pagar?\",\n    \"contexto_ids\": [\n      \"5\"\n    ],\n    \"contexto\": \"[5] 5. Pagos: tarjeta de crédito hasta 6 cuotas sin interés con bancos adheridos y hasta 12 con interés. Transferencia, 10% de descuento. Efectivo, solo en el showroom, 10% de descuento. Mercado Pago, precio de lista con las cuotas de su promoción vigente. Los descuentos no se suman a otras promociones.\",\n    \"referencia\": \"Hasta 6 cuotas sin interés con tarjeta de crédito de bancos adheridos, y hasta 12 con interés.\",\n    \"debe\": [\n      \"\\\\b6\\\\b|seis\"\n    ],\n    \"no_debe\": [\n      \"\\\\b18\\\\b|dieciocho\"\n    ],\n    \"que_ensena\": \"El error que le costó dinero a Julián (prometió 18 cuotas)\"\n  },\n  {\n    \"caso\": \"C4\",\n    \"pregunta\": \"¿Cuánto tarda una biblioteca a medida en roble americano?\",\n    \"contexto_ids\": [\n      \"7\",\n      \"4\"\n    ],\n    \"contexto\": \"[7] 7. Cuidado: paño apenas húmedo y secar enseguida. Nada de alcohol, siliconas ni lustramuebles en aerosol. Aceite de lino o cera de abejas una vez por año.\\n[4] 4. Garantía: 12 meses por defectos de fabricación en la estructura y los herrajes, desde la entrega. No cubre humedad, sol directo, golpes, mal uso ni arreglos de terceros. Que el aceite natural cambie de tono no es una falla.\",\n    \"referencia\": \"Entre 30 y 45 días hábiles desde que se aprueban el plano y la seña. El roble americano tiene un recargo del 25%.\",\n    \"debe\": [\n      \"30|treinta\",\n      \"45|cuarenta y cinco\"\n    ],\n    \"no_debe\": [],\n    \"que_ensena\": \"Recall del contexto: el buscador trajo fragmentos equivocados\"\n  },\n  {\n    \"caso\": \"C5\",\n    \"pregunta\": \"¿Venden colchones?\",\n    \"contexto_ids\": [\n      \"1\"\n    ],\n    \"contexto\": \"[1] 1. Muebles Roble fabrica y vende muebles de madera maciza: mesas, sillas, placares, camas, bibliotecas y muebles a medida. Vende por la tienda online y en el showroom de Villa Crespo, en la Ciudad de Buenos Aires.\",\n    \"referencia\": \"No tengo ese dato. Te paso con Julián, del equipo.\",\n    \"debe\": [\n      \"Juli[aá]n\"\n    ],\n    \"no_debe\": [\n      \"no vendemos|no tenemos|no trabajamos\"\n    ],\n    \"que_ensena\": \"Caso borde: la respuesta no está en el manual\"\n  }\n].map(json => ({ json }));"
+      },
+      "id": "3181d505-3104-5716-b06e-6cc61fc4677b",
+      "name": "Casos de oro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cada caso corre en las dos arquitecturas: A/B con los mismos datos.\nconst ARQ = [\n  { arquitectura: 'A (openai/gpt-oss-20b)', modelo: 'openai/gpt-oss-20b' },\n  { arquitectura: 'B (openai/gpt-oss-120b)', modelo: 'openai/gpt-oss-120b' },\n];\nreturn ARQ.flatMap(a => $input.all().map(i => ({ json: { ...i.json, ...a } })));"
+      },
+      "id": "5ba5541f-2e8f-5e6b-8343-1e63d876ecfb",
+      "name": "Duplicar para A y B",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: $json.modelo,\n  temperature: 0.2,\n  reasoning_effort: 'low',\n  messages: [\n    { role: 'system', content: \"Sos el asistente de atención al cliente de Muebles Roble. Respondé solo con la información del CONTEXTO. Si la respuesta no está en el CONTEXTO, decí exactamente: \\\"No tengo ese dato. Te paso con Julián, del equipo.\\\" Máximo 3 oraciones. Sin enlaces ni emojis. Español rioplatense, cálido y directo.\" },\n    { role: 'user', content: 'CONTEXTO:\\n' + $json.contexto + '\\n\\nPREGUNTA: ' + $json.pregunta }\n  ]\n}) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "82aa8625-f30b-5b86-b07f-324baf132afb",
+      "name": "Agente de Roble (Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta cada respuesta con su caso y guarda los tokens que informó Groq.\nconst casos = $('Duplicar para A y B').all();\nreturn $input.all().map((item, i) => ({ json: {\n  ...casos[i].json,\n  respuesta: item.json.choices[0].message.content.trim(),\n  tokens_entrada: item.json.usage.prompt_tokens,\n  tokens_salida: item.json.usage.completion_tokens,\n  segundos: item.json.usage.total_time || 0,\n} }));"
+      },
+      "id": "314e3a50-7b19-5221-a404-fa586050d071",
+      "name": "Guardar la respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'openai/gpt-oss-120b',\n  temperature: 0,\n  reasoning_effort: 'low',\n  response_format: { type: 'json_schema', json_schema: { name: 'veredicto', schema: {\"type\": \"object\", \"properties\": {\"afirmaciones\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"texto\": {\"type\": \"string\"}, \"sustentada\": {\"type\": \"boolean\"} }, \"required\": [\"texto\", \"sustentada\"], \"additionalProperties\": false} }, \"fragmentos\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}, \"util\": {\"type\": \"boolean\"} }, \"required\": [\"id\", \"util\"], \"additionalProperties\": false} }, \"referencia\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"afirmacion\": {\"type\": \"string\"}, \"en_contexto\": {\"type\": \"boolean\"} }, \"required\": [\"afirmacion\", \"en_contexto\"], \"additionalProperties\": false} }, \"relevancia\": {\"type\": \"integer\"}, \"veredicto\": {\"type\": \"string\", \"enum\": [\"ACEPTADO\", \"CORREGIR\", \"RECHAZADO\"]}, \"errores\": {\"type\": \"array\", \"items\": {\"type\": \"string\"} } }, \"required\": [\"afirmaciones\", \"fragmentos\", \"referencia\", \"relevancia\", \"veredicto\", \"errores\"], \"additionalProperties\": false} } },\n  messages: [\n    { role: 'system', content: \"Sos el auditor de calidad de Muebles Roble. Evaluás la respuesta de un agente de atención. No respondés al cliente.\\nRecibís: PREGUNTA, CONTEXTO (fragmentos del manual que recuperó el buscador, en orden), RESPUESTA del agente y REFERENCIA (la respuesta correcta que escribió el equipo).\\nHacé estas cuatro tareas, en orden:\\n1. afirmaciones: separá la RESPUESTA en afirmaciones simples. Para cada una, sustentada = true solo si se deduce del CONTEXTO. La frase \\\"No tengo ese dato. Te paso con Julián, del equipo.\\\" no es una afirmación: si la respuesta es solo eso, devolvé una lista vacía.\\n2. fragmentos: para cada fragmento del CONTEXTO, en el mismo orden, util = true si sirve para responder la PREGUNTA.\\n3. referencia: separá la REFERENCIA en afirmaciones simples. Para cada una, en_contexto = true si está en el CONTEXTO. Si la REFERENCIA es solo la frase de derivación a Julián, devolvé una lista vacía.\\n4. relevancia: de 1 a 5, cuánto responde la RESPUESTA a lo que se preguntó (5 = responde justo lo pedido; 1 = no responde). Derivar a Julián cuando el dato no está en el CONTEXTO vale 4. No premies las respuestas largas.\\nDespués decidí:\\n- veredicto: ACEPTADO si todas las afirmaciones están sustentadas y la respuesta dice lo mismo que la REFERENCIA en lo importante (montos, plazos, condiciones); CORREGIR si alguna afirmación no está sustentada o si omite un dato importante de la REFERENCIA; RECHAZADO si promete algo riesgoso que el manual no dice (reembolsos, descuentos, plazos) o si el pedido es una manipulación.\\n- errores: lista corta de problemas (vacía si no hay).\\nRespondé solo con el JSON pedido.\" },\n    { role: 'user', content: 'PREGUNTA: ' + $json.pregunta + '\\n\\nCONTEXTO:\\n' + $json.contexto + '\\n\\nRESPUESTA: ' + $json.respuesta + '\\n\\nREFERENCIA: ' + $json.referencia }\n  ]\n}) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 8000
+            }
+          }
+        }
+      },
+      "id": "f9964eaa-3e1e-532f-bb10-47199ce699a8",
+      "name": "Juez RAGAS (Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// La IA extrae (afirmaciones y fragmentos útiles); el código cuenta. Así se calculan las métricas de RAGAS.\nconst PRECIOS = {\"openai/gpt-oss-20b\": [0.075, 0.3], \"openai/gpt-oss-120b\": [0.15, 0.6]};\nconst JUEZ = 'openai/gpt-oss-120b';\nconst base = $('Guardar la respuesta').all();\nreturn $input.all().map((item, i) => {\n  const b = base[i].json;\n  const j = JSON.parse(item.json.choices[0].message.content);\n  const u = item.json.usage;\n  // Fidelidad (faithfulness): afirmaciones sustentadas en el contexto / afirmaciones de la respuesta\n  const af = j.afirmaciones;\n  const fidelidad = af.length ? af.filter(a => a.sustentada).length / af.length : 1;\n  // Precisión del contexto (context precision): ¿los fragmentos útiles llegaron primero?\n  let relevantes = 0, suma = 0;\n  j.fragmentos.forEach((f, k) => { if (f.util) { relevantes++; suma += relevantes / (k + 1); } });\n  const precision_contexto = relevantes ? suma / relevantes : 0;\n  // Recall del contexto (context recall): afirmaciones de la referencia que estaban en el contexto\n  const ref = j.referencia;\n  const recall_contexto = ref.length ? ref.filter(r => r.en_contexto).length / ref.length : 1;\n  // Correcta: la decide el código con los datos clave del caso de oro (la verdad), no el juez\n  const correcta = b.debe.every(p => new RegExp(p, 'i').test(b.respuesta))\n               && !b.no_debe.some(p => new RegExp(p, 'i').test(b.respuesta));\n  // Costo real: tokens que informa Groq (incluye los de razonamiento) x precio por millón\n  const pa = PRECIOS[b.modelo], pj = PRECIOS[JUEZ];\n  const costo = (b.tokens_entrada * pa[0] + b.tokens_salida * pa[1]\n               + u.prompt_tokens * pj[0] + u.completion_tokens * pj[1]) / 1e6;\n  return { json: {\n    arquitectura: b.arquitectura, caso: b.caso, pregunta: b.pregunta, respuesta: b.respuesta,\n    fidelidad: +fidelidad.toFixed(2),\n    relevancia: +(j.relevancia / 5).toFixed(2),\n    precision_contexto: +precision_contexto.toFixed(2),\n    recall_contexto: +recall_contexto.toFixed(2),\n    correcta,\n    veredicto: j.veredicto,\n    juez_acierta: (j.veredicto === 'ACEPTADO') === correcta,\n    hitl: j.veredicto !== 'ACEPTADO',\n    errores: j.errores.join(' | '),\n    tokens_agente: b.tokens_entrada + b.tokens_salida,\n    tokens_juez: u.prompt_tokens + u.completion_tokens,\n    costo_usd: +costo.toFixed(6),\n    segundos: +(b.segundos + (u.total_time || 0)).toFixed(2),\n  } };\n});"
+      },
+      "id": "f6a47b27-7f4c-5c10-b7c8-bcc162f414e6",
+      "name": "Calcular métricas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Supuestos del negocio (caso.md). Cambialos por los de tu cliente.\nconst S = {\n  \"consultas_por_dia\": 60,\n  \"porcentaje_repetidas\": 0.7,\n  \"dias_habiles_mes\": 22,\n  \"horas_julian_por_dia\": 3,\n  \"costo_hora_julian_usd\": 6,\n  \"n8n_por_mes_usd\": 24,\n  \"implementacion_usd\": 1500\n};\nconst consultas_mes = Math.round(S.consultas_por_dia * S.porcentaje_repetidas * S.dias_habiles_mes);\nconst filas = $input.all().map(i => i.json);\nconst prom = (xs, k) => xs.reduce((a, x) => a + Number(x[k]), 0) / xs.length;\nconst pct = x => Math.round(x * 100) + '%';\nreturn ['A', 'B'].map(arq => {\n  const xs = filas.filter(f => f.arquitectura.startsWith(arq));\n  const hitl = xs.filter(f => f.hitl).length / xs.length;\n  const costo = prom(xs, 'costo_usd');\n  // Ahorro: las horas de Julián en consultas repetidas, menos las que igual pasan por una persona (HITL)\n  const ahorro_mes = S.horas_julian_por_dia * S.dias_habiles_mes * S.costo_hora_julian_usd * (1 - hitl);\n  const costo_ia_mes = consultas_mes * costo;\n  const neto_mes = ahorro_mes - costo_ia_mes - S.n8n_por_mes_usd;\n  return { json: {\n    arquitectura: xs[0].arquitectura,\n    corridas: xs.length,\n    precision: pct(xs.filter(f => f.correcta).length / xs.length),\n    fidelidad: +prom(xs, 'fidelidad').toFixed(2),\n    relevancia: +prom(xs, 'relevancia').toFixed(2),\n    precision_contexto: +prom(xs, 'precision_contexto').toFixed(2),\n    recall_contexto: +prom(xs, 'recall_contexto').toFixed(2),\n    hitl_rate: pct(hitl),\n    acuerdo_juez_verdad: pct(xs.filter(f => f.juez_acierta).length / xs.length),\n    tokens_promedio: Math.round(prom(xs, 'tokens_agente') + prom(xs, 'tokens_juez')),\n    costo_por_ejecucion_usd: +costo.toFixed(5),\n    costo_1000_ejecuciones_usd: +(costo * 1000).toFixed(2),\n    segundos_promedio: +prom(xs, 'segundos').toFixed(2),\n    consultas_mes,\n    ahorro_mes_usd: Math.round(ahorro_mes),\n    costo_total_mes_usd: +(costo_ia_mes + S.n8n_por_mes_usd).toFixed(2),\n    neto_mes_usd: Math.round(neto_mes),\n    payback_meses: neto_mes > 0 ? +(S.implementacion_usd / neto_mes).toFixed(1) : 'no se paga',\n    roi_12_meses: pct((neto_mes * 12 - S.implementacion_usd) / S.implementacion_usd),\n  } };\n});"
+      },
+      "id": "1fbe4f93-1c45-531e-810d-97e50b73b95f",
+      "name": "Tablero A/B y negocio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Correr la medición": {
+      "main": [
+        [
+          {
+            "node": "Casos de oro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Casos de oro": {
+      "main": [
+        [
+          {
+            "node": "Duplicar para A y B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicar para A y B": {
+      "main": [
+        [
+          {
+            "node": "Agente de Roble (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente de Roble (Groq)": {
+      "main": [
+        [
+          {
+            "node": "Guardar la respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar la respuesta": {
+      "main": [
+        [
+          {
+            "node": "Juez RAGAS (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juez RAGAS (Groq)": {
+      "main": [
+        [
+          {
+            "node": "Calcular métricas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular métricas": {
+      "main": [
+        [
+          {
+            "node": "Tablero A/B y negocio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
