@@ -1,0 +1,177 @@
+{
+  "name": "Logger de tokens del AI Agent · Clase 9",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 📊 Logger de tokens del AI Agent\nLos tokens quedan en el **sub-nodo del modelo** y no se pueden leer desde el flujo principal. Este workflow los saca **después**, de las ejecuciones guardadas, con la API de n8n.\n\n1. Creá la credencial **n8n API** en el nodo *Traer ejecuciones* (API key + Base URL `http://localhost:5678/api/v1`).\n2. Ejecutá. Mirá *Tokens por llamada* y *Resumen por ejecución*.\n3. Para guardarlo: conectá Google Sheets / Airtable / Data Table al final.\n\n`fuente` te dice si el número es **real** (OpenAI/Anthropic) o **estimado por n8n** (ej. Gemini).",
+        "height": 276,
+        "width": 860,
+        "color": 4
+      },
+      "id": "l-note",
+      "name": "Cómo funciona",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        -208
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "l-manual",
+      "name": "Ejecutar a mano",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "l-sched",
+      "name": "Cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "execution",
+        "limit": 10,
+        "filters": {
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "Qws8Geu1QHXUP250"
+          },
+          "status": "success"
+        },
+        "options": {
+          "activeWorkflows": true
+        },
+        "requestOptions": {}
+      },
+      "id": "l-n8n",
+      "name": "Traer ejecuciones",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        272,
+        80
+      ],
+      "credentials": {
+        "n8nApi": {
+          "id": "PhNwkcqZRry7VpdP",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recorre cada ejecución y saca los tokens de CADA llamada al modelo (sub-nodo)\nconst filas = [];\nfor (const item of $input.all()) {\n  const ex = item.json;\n  const runData = ex.data?.resultData?.runData || {};\n  for (const [nodo, runs] of Object.entries(runData)) {\n    runs.forEach((run, i) => {\n      const salida = run.data?.ai_languageModel?.[0]?.[0]?.json;\n      if (!salida) return; // no es un nodo de modelo\n      const real = salida.tokenUsage;\n      const estimado = salida.tokenUsageEstimate;\n      const u = real || estimado || {};\n      filas.push({ json: {\n        ejecucion_id: ex.id,\n        fecha: ex.startedAt,\n        workflow_id: ex.workflowId,\n        nodo_modelo: nodo,\n        llamada_n: i + 1,\n        promptTokens: u.promptTokens ?? null,\n        completionTokens: u.completionTokens ?? null,\n        totalTokens: u.totalTokens ?? null,\n        fuente: real ? 'real (API del proveedor)' : (estimado ? 'estimado por n8n' : 'sin dato')\n      }});\n    });\n  }\n}\nreturn filas.length ? filas : [{ json: { aviso: 'No encontré llamadas a modelos en estas ejecuciones' } }];"
+      },
+      "id": "l-ext",
+      "name": "Tokens por llamada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un renglón por ejecución: total de llamadas y tokens\nconst por = {};\nfor (const { json: f } of $input.all()) {\n  if (!f.ejecucion_id) continue;\n  const r = por[f.ejecucion_id] ??= { ejecucion_id: f.ejecucion_id, fecha: f.fecha, llamadas_al_modelo: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, fuente: f.fuente };\n  r.llamadas_al_modelo++;\n  r.promptTokens += f.promptTokens || 0;\n  r.completionTokens += f.completionTokens || 0;\n  r.totalTokens += f.totalTokens || 0;\n}\nreturn Object.values(por).map(json => ({ json }));"
+      },
+      "id": "l-res",
+      "name": "Resumen por ejecución",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ejecutar a mano": {
+      "main": [
+        [
+          {
+            "node": "Traer ejecuciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Traer ejecuciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traer ejecuciones": {
+      "main": [
+        [
+          {
+            "node": "Tokens por llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tokens por llamada": {
+      "main": [
+        [
+          {
+            "node": "Resumen por ejecución",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b5c36d46-3d2c-4921-b49a-208b140566f0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "86a2d9cef1acf9facc8e0356275f0602ff7ea08eed9657166badcbbe779d3aab"
+  },
+  "nodeGroups": [],
+  "id": "d1tS5ggQRvT2iYqz",
+  "tags": [
+    {
+      "updatedAt": "2026-10-14T18:23:10.710Z",
+      "createdAt": "2026-10-14T18:23:10.710Z",
+      "id": "U0ZPSBoZjT6qCR8N",
+      "name": "avanzado_v2"
+    }
+  ]
+}

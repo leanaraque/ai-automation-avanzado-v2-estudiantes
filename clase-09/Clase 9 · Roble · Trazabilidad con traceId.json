@@ -1,0 +1,570 @@
+{
+  "name": "Clase 9 · Roble · Trazabilidad con traceId",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🧵 Trazabilidad con traceId (correlationId)\nUna sola pregunta del cliente genera **2 ejecuciones distintas**: la del agente (este workflow) y la del sub-workflow *consultar_stock*. Cada una tiene **su propio executionId**. El **traceId** se genera acá al inicio y viaja al sub-workflow → en la Data Table **roble_logs_traza** las filas quedan unidas.\n\n| Campo | De dónde sale en n8n |\n|---|---|\n| timestamp | `{{ $now.toISO() }}` (ISO 8601) |\n| traceId | Se genera en *Generar traceId* y se pasa como input al sub-workflow |\n| executionId | `{{ $execution.id }}` → **cambia** entre padre e hijo |\n| nodeName | Escrito en cada nodo de log |\n| agentThought | AI Agent → Options → **Return Intermediate Steps** = ON → herramienta usada, input y resultado |\n| environment | Fijo en *Generar traceId* (\"staging\"). En producción: `{{ $env.ENVIRONMENT }}` o Variables |",
+        "height": 440,
+        "width": 1500,
+        "color": 7
+      },
+      "id": "a69b9acb-5b30-481e-8871-5278c7ea8f17",
+      "name": "Qué muestra",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        -608
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🧪 Cómo mostrarlo en clase\n1. Abrí el chat y preguntá:\n> **¿Tienen stock de la mesa nórdica 160? ¿Cuánto sale?**\n2. Andá a **Executions** (arriba): vas a ver **2 ejecuciones** (este workflow y el sub-workflow) con **IDs distintos**.\n3. Abrí la Data Table **roble_logs_traza** (Overview → Data tables): 3 filas con **el mismo traceId** y 2 executionId distintos.\n4. Mirá la columna **agentThought**: qué herramienta eligió el agente y con qué input.",
+        "height": 330,
+        "width": 640,
+        "color": 4
+      },
+      "id": "39af5e97-bee7-48d1-95d5-63cf4e801c75",
+      "name": "Cómo mostrarlo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🙋 Preguntas para la clase\n1. Si no pasáramos el traceId, ¿cómo sabrían qué ejecución del sub-workflow corresponde a qué cliente?\n2. ¿Por qué el traceId lo pone el **workflow** y no el modelo con $fromAI?\n3. Un cliente reclama \"el bot me dijo un precio mal\": ¿qué buscarían primero en la tabla de logs?\n4. ¿Qué dato **NO** deberíamos guardar nunca en agentThought o evento? (pista: DNI, tarjetas)\n5. ¿Para qué sirve saber el environment si el error pasó en staging o en producción?\n6. ¿Qué pasa con este log si el sub-workflow falla a la mitad? ¿Cómo lo resolverían?",
+        "height": 330,
+        "width": 820,
+        "color": 5
+      },
+      "id": "644a4865-7943-4eba-8619-5330245b981e",
+      "name": "Preguntas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        544,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f8823393-ff6b-4bb4-bcbd-97d8554abdba",
+      "name": "Chat cliente",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "e4382233-c330-4326-9217-4c8726d7da01"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0a771785-3e08-482b-b51b-70804b942b5d",
+              "name": "traceId",
+              "value": "={{ 'trace-' + $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyyMMdd-HHmmss') + '-' + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "44833c75-8ea0-4e6c-a5d2-a0366ab89c25",
+              "name": "environment",
+              "value": "staging",
+              "type": "string"
+            },
+            {
+              "id": "c2c614ce-6c82-434f-bf8b-a9afa345a0a9",
+              "name": "chatInput",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "60f8cd7b-3672-4542-8e10-4114d15817b0",
+              "name": "sessionId",
+              "value": "={{ $json.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "22a14690-b128-4209-99c8-91e9aef5ef01",
+      "name": "Generar traceId",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GiSToS43oqpbaK17"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now.setZone('America/Argentina/Buenos_Aires').toISO() }}",
+            "traceId": "={{ $json.traceId }}",
+            "executionId": "={{ $execution.id }}",
+            "workflow": "={{ $workflow.name }}",
+            "nodeName": "Chat cliente",
+            "evento": "={{ 'Mensaje recibido: ' + $json.chatInput }}",
+            "agentThought": "",
+            "environment": "={{ $json.environment }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "traceId",
+              "displayName": "traceId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "executionId",
+              "displayName": "executionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nodeName",
+              "displayName": "nodeName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "agentThought",
+              "displayName": "agentThought",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "environment",
+              "displayName": "environment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "dbcefe6e-f676-4fe1-8a9f-af4f88c1a2d1",
+      "name": "Log: inicio",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Generar traceId').item.json.chatInput }}",
+        "options": {
+          "systemMessage": "Sos el asistente de ventas de Roble Mueblería. Para stock o precios usá SIEMPRE la herramienta consultar_stock; nunca inventes datos. Respondé en español rioplatense, máximo 2 líneas.",
+          "maxIterations": 4,
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "b9412991-a9f7-473b-b32c-16bdfe686d4d",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "ec4764fd-f18f-4714-b8e1-081f7205f61a",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        256
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pmHZf57WAYpLj6WJ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Consulta stock y precio de un mueble de Roble Mueblería. Usala cuando el cliente pregunte por disponibilidad o precio.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "MTvkfOTJ5YbKcdyK",
+          "cachedResultName": "Clase 9 · Sub-workflow consultar_stock (traceId)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "producto": "={{ $fromAI('producto', 'Nombre del mueble que pregunta el cliente, por ejemplo mesa nórdica 160', 'string') }}",
+            "traceId": "={{ $('Generar traceId').item.json.traceId }}",
+            "environment": "={{ $('Generar traceId').item.json.environment }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "producto",
+              "displayName": "producto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "traceId",
+              "displayName": "traceId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "environment",
+              "displayName": "environment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "f5872c60-7931-41e1-b185-7a588675183d",
+      "name": "consultar_stock",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return Intermediate Steps = ON → el agente devuelve los pasos que hizo\nconst out = $input.first().json;\nconst pasos = (out.intermediateSteps || []).map((s, i) => {\n  const a = s.action || {};\n  const obs = typeof s.observation === 'string' ? s.observation : JSON.stringify(s.observation);\n  return `Paso ${i + 1}: usó ${a.tool} con ${JSON.stringify(a.toolInput)} → ${(obs || '').slice(0, 200)}`;\n});\nreturn [{ json: {\n  output: out.output,\n  agentThought: pasos.length ? pasos.join(' | ') : 'Respondió sin usar herramientas'\n} }];"
+      },
+      "id": "0c1ed3f9-355f-47b0-9e7b-f8ca411b0bdb",
+      "name": "Armar agentThought",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GiSToS43oqpbaK17"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now.setZone('America/Argentina/Buenos_Aires').toISO() }}",
+            "traceId": "={{ $('Generar traceId').item.json.traceId }}",
+            "executionId": "={{ $execution.id }}",
+            "workflow": "={{ $workflow.name }}",
+            "nodeName": "AI Agent",
+            "evento": "={{ 'Respuesta: ' + $json.output }}",
+            "agentThought": "={{ $json.agentThought }}",
+            "environment": "={{ $('Generar traceId').item.json.environment }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "traceId",
+              "displayName": "traceId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "executionId",
+              "displayName": "executionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nodeName",
+              "displayName": "nodeName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "agentThought",
+              "displayName": "agentThought",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "environment",
+              "displayName": "environment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "0b5bab9a-b1f3-4fab-9f70-7d8490f85b40",
+      "name": "Log: agente",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d21acb0-2a77-4fe1-9198-ec1e25e2de63",
+              "name": "output",
+              "value": "={{ $('Armar agentThought').item.json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "516e9f39-e783-46c9-98ba-7787a7f4df45",
+      "name": "Responder al chat",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat cliente": {
+      "main": [
+        [
+          {
+            "node": "Generar traceId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar traceId": {
+      "main": [
+        [
+          {
+            "node": "Log: inicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log: inicio": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Armar agentThought",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar agentThought": {
+      "main": [
+        [
+          {
+            "node": "Log: agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log: agente": {
+      "main": [
+        [
+          {
+            "node": "Responder al chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_stock": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "dd38f2b7-8c8e-4025-8b43-4e6f15b38b91",
+  "meta": {
+    "instanceId": "86a2d9cef1acf9facc8e0356275f0602ff7ea08eed9657166badcbbe779d3aab"
+  },
+  "nodeGroups": [],
+  "id": "G7ma8sWdnBN1ORSI",
+  "tags": [
+    {
+      "updatedAt": "2026-10-14T18:23:10.710Z",
+      "createdAt": "2026-10-14T18:23:10.710Z",
+      "id": "U0ZPSBoZjT6qCR8N",
+      "name": "avanzado_v2"
+    }
+  ]
+}

@@ -1,0 +1,483 @@
+{
+  "name": "Clase 9 · Roble · Guardrails financieros (caso Runaway)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🛡️ Caso Runaway: guardrails financieros en el agente RAG de Roble\n\n**A. Filtro de intención** → *¿Es un saludo?* (IF con regex). Saludos y agradecimientos se responden con un texto fijo: **0 tokens, sin RAG, sin agente**.\n\n**B. Tope por usuario** → *Contar mensajes* + *¿Superó el tope?* Cuenta los mensajes de la sesión en la hora actual (Data Table `roble_tope_mensajes`). Si llega a **5**, responde fijo y deriva a un asesor. El límite se cambia en el nodo *Calcular uso* (const LIMITE).\n\n**C. Límites dentro del agente**\n- **Max Iterations = 4** (AI Agent → Options): corta loops.\n- **Top-K = 3** (buscar_politicas_roble): nunca manda la base completa, solo los 3 fragmentos más parecidos.\n- **Maximum Number of Tokens = 300** (Gemini → Options): limita el largo (y costo) de cada respuesta.\n- **Minimum Score**: Supabase no lo trae en este nodo. Se resuelve en la función `match_documents` (filtrar por similitud) o con LlamaCloud / Pinecone, que sí tienen el umbral.\n\n**D. Tope de plata (fuera de n8n)** → en el panel del proveedor (Google AI Studio / Cloud Billing, OpenAI, Anthropic): **límite o alerta de gasto mensual** en la API key. Es la red final si todo lo demás falla.",
+        "height": 420,
+        "width": 1960,
+        "color": 7
+      },
+      "id": "g-note1",
+      "name": "Guardrails",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -752
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🧪 Cómo probarlo\n1. Escribí **hola** → responde al instante, **no** se ejecuta el agente (mirá Logs: 0 llamadas al modelo).\n2. Preguntá **¿Cuánto tarda el envío a Córdoba?** → pasa por el agente + RAG (Top-K 3).\n3. Hacé **6 consultas** en la misma sesión → la 6.ª responde \"Alcanzaste el límite\".\n4. Tocá *Reset session* en el chat → sesión nueva, el contador arranca de 0. (¿Es un problema? 👀)\n\nPara limpiar el contador: borrá las filas de la Data Table `roble_tope_mensajes`.",
+        "height": 300,
+        "width": 560,
+        "color": 4
+      },
+      "id": "g-note2",
+      "name": "Probar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "g-chat",
+      "name": "Chat cliente",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "4eb23e1e-0481-4bc1-b3d1-b54d61b86f40"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "696ba73b-b31b-4a6e-aa95-0d8f14e8ff5e",
+              "leftValue": "={{ $json.chatInput.trim() }}",
+              "rightValue": "^(hola|holis|buenas|buen d[ií]a|buenas (tardes|noches)|hey|gracias|muchas gracias|chau|adi[oó]s|ok|dale|genial)[\\s!.¡?¿😊🙂👋]*$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "id": "g-if1",
+      "name": "¿Es un saludo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "98efdfd5-3ef3-499b-830f-e70c4e6b54f4",
+              "name": "output",
+              "value": "¡Hola! 👋 Soy el asistente de Roble Mueblería. Te puedo ayudar con envíos, garantía, cambios y devoluciones, medios de pago y muebles a medida. ¿Qué necesitás?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g-saludo",
+      "name": "Respuesta saludo (0 tokens)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "rwhshCfRf5X7NGCa"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "sessionId",
+              "keyValue": "={{ $('Chat cliente').item.json.sessionId }}"
+            },
+            {
+              "keyName": "hora",
+              "keyValue": "={{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd HH') }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "g-count",
+      "name": "Contar mensajes (última hora)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        112
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 👇 Tope de mensajes por sesión y por hora\nconst LIMITE = 5;\n\nconst usados = $input.all().filter(i => i.json && i.json.id).length;\nconst chat = $('Chat cliente').first().json;\nreturn [{ json: {\n  sessionId: chat.sessionId,\n  chatInput: chat.chatInput,\n  mensajes_esta_hora: usados,\n  limite: LIMITE,\n  superado: usados >= LIMITE\n} }];"
+      },
+      "id": "g-calc",
+      "name": "Calcular uso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "28b56291-741c-4f14-9168-042155a44bfa",
+              "leftValue": "={{ $json.superado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "g-if2",
+      "name": "¿Superó el tope?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1ccd23e0-9cff-4aec-b067-2c98cc5d2d95",
+              "name": "output",
+              "value": "Alcanzaste el límite de consultas por hora 🙏 Te derivamos con un asesor de Roble que te va a contactar a la brevedad.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g-limite",
+      "name": "Respuesta límite",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1152,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "rwhshCfRf5X7NGCa"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sessionId": "={{ $json.sessionId }}",
+            "hora": "={{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd HH') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora",
+              "displayName": "hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "g-insert",
+      "name": "Registrar mensaje",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1152,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Calcular uso').item.json.chatInput }}",
+        "options": {
+          "systemMessage": "Sos el asistente de atención al cliente de Roble Mueblería (muebles de madera maciza, tienda online y showroom en CABA).\n\n- Para envíos, plazos, armado, cambios, devoluciones, garantía, medios de pago, cuotas, muebles a medida o cuidado de la madera: usá SIEMPRE la herramienta buscar_politicas_roble y respondé SOLO con lo que diga.\n- Si el dato no está en los fragmentos, respondé: \"No sé: ese dato no figura en nuestro manual de políticas.\"\n- Usá la herramienta UNA sola vez por pregunta. No repitas búsquedas.\n- Máximo 3 líneas, español rioplatense (voseo).",
+          "maxIterations": 4
+        }
+      },
+      "id": "g-agent",
+      "name": "AI Agent RAG (con límites)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxOutputTokens": 300,
+          "temperature": 0.3
+        }
+      },
+      "id": "g-model",
+      "name": "Gemini (máx 300 tokens)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1312,
+        432
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pmHZf57WAYpLj6WJ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca en el Manual de Políticas 2026 de Roble Mueblería (envíos, plazos, armado, cambios, devoluciones, garantía, medios de pago, cuotas, muebles a medida, cuidado de la madera). Devuelve los fragmentos más relevantes. Usala una sola vez por pregunta.",
+        "tableName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "documents"
+        },
+        "topK": 3,
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "g-rag",
+      "name": "buscar_politicas_roble (Top-K 3)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        432
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "39cgZPUr49mDMvRV",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "id": "g-emb",
+      "name": "Embeddings Gemini",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        608
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pmHZf57WAYpLj6WJ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat cliente": {
+      "main": [
+        [
+          {
+            "node": "¿Es un saludo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es un saludo?": {
+      "main": [
+        [
+          {
+            "node": "Respuesta saludo (0 tokens)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contar mensajes (última hora)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contar mensajes (última hora)": {
+      "main": [
+        [
+          {
+            "node": "Calcular uso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular uso": {
+      "main": [
+        [
+          {
+            "node": "¿Superó el tope?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Superó el tope?": {
+      "main": [
+        [
+          {
+            "node": "Respuesta límite",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar mensaje": {
+      "main": [
+        [
+          {
+            "node": "AI Agent RAG (con límites)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini (máx 300 tokens)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent RAG (con límites)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_politicas_roble (Top-K 3)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent RAG (con límites)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "buscar_politicas_roble (Top-K 3)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5f7150d3-597d-4078-bda7-8c7d1cd8c5fe",
+  "meta": {
+    "instanceId": "86a2d9cef1acf9facc8e0356275f0602ff7ea08eed9657166badcbbe779d3aab"
+  },
+  "nodeGroups": [],
+  "id": "wChVpuvNWUQHcv8W",
+  "tags": [
+    {
+      "updatedAt": "2026-10-14T18:23:10.710Z",
+      "createdAt": "2026-10-14T18:23:10.710Z",
+      "id": "U0ZPSBoZjT6qCR8N",
+      "name": "avanzado_v2"
+    }
+  ]
+}

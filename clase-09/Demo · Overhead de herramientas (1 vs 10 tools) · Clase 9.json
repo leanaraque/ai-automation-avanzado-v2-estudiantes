@@ -1,0 +1,491 @@
+{
+  "name": "Demo · Overhead de herramientas (1 vs 10 tools) · Clase 9",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Demo: overhead de herramientas\n\n**Ronda 1 (1 herramienta):** abrí el chat y preguntá:\n> ¿Tienen en stock la mesa Nórdica de 160? ¿Cuánto sale?\n\nEn **Logs** abrí *OpenAI Chat Model* y anotá `promptTokens` de cada llamada.\n\n**Ronda 2 (10 herramientas):** conectá las 9 tools de abajo al conector *Tool* del AI Agent, hacé **la misma pregunta** y compará `promptTokens`.\n\nLa diferencia = lo que pagás por mandarle al modelo la definición de herramientas que ni usó.",
+        "height": 380,
+        "width": 560,
+        "color": 4
+      },
+      "id": "n-note",
+      "name": "Instrucciones demo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -256
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🔌 Ronda 2: conectá estas 9 herramientas al AI Agent (conector Tool)",
+        "height": 260,
+        "width": 1772,
+        "color": 6
+      },
+      "id": "n-note2",
+      "name": "Herramientas extra",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "n-trigger",
+      "name": "Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "webhookId": "0874aca3-581e-4949-92f1-632096aa1476"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Sos el asistente de ventas de Roble Mueblería (Argentina). Respondé en español rioplatense, breve y claro. Para precios, stock, envíos, pedidos o políticas usá SIEMPRE las herramientas disponibles: nunca inventes datos. Si no tenés una herramienta para responder algo, decí que lo derivás a un asesor."
+        }
+      },
+      "id": "n-agent",
+      "name": "AI Agent - Roble",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        464,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_stock",
+        "description": "Consulta stock y precio de un mueble del catálogo de Roble Mueblería. Usala cuando el cliente pregunte si hay disponibilidad, cuántas unidades quedan o cuánto cuesta un producto. Input: nombre del producto (ej: \"mesa Nórdica 160\").",
+        "jsCode": "const catalogo = {\n  'mesa nórdica 160': { stock: 4, precio: 485000, demora: 'entrega inmediata' },\n  'mesa nórdica 200': { stock: 0, precio: 590000, demora: 'fabricación a pedido, 30 días' },\n  'silla escandinava': { stock: 22, precio: 78000, demora: 'entrega inmediata' },\n  'rack tv roble': { stock: 2, precio: 320000, demora: 'entrega inmediata' },\n  'cama paraíso 2 plazas': { stock: 1, precio: 710000, demora: 'entrega inmediata' }\n};\nconst q = (query || '').toLowerCase();\nconst key = Object.keys(catalogo).find(k => q.includes(k) || k.includes(q));\nif (!key) return 'Producto no encontrado. Productos disponibles: ' + Object.keys(catalogo).join(', ');\nconst p = catalogo[key];\nreturn JSON.stringify({ producto: key, stock: p.stock, precio_ARS: p.precio, entrega: p.demora });"
+      },
+      "id": "n-tool0",
+      "name": "consultar_stock",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "name": "calcular_envio",
+        "description": "Calcula costo y demora del envío según la provincia o ciudad de destino. Usala solo cuando el cliente pregunte cuánto sale o cuánto tarda el envío. Input: destino (ej: \"Córdoba\").",
+        "jsCode": "const tarifas = { 'caba': [15000,'24-48 h'], 'buenos aires': [22000,'48-72 h'], 'córdoba': [38000,'3-5 días hábiles'], 'santa fe': [35000,'3-5 días hábiles'], 'mendoza': [45000,'5-7 días hábiles'] };\nconst q = (query||'').toLowerCase();\nconst k = Object.keys(tarifas).find(x => q.includes(x));\nreturn k ? JSON.stringify({ destino: k, costo_ARS: tarifas[k][0], demora: tarifas[k][1] }) : 'Destino sin tarifa cargada: derivar a ventas.';"
+      },
+      "id": "n-tool1",
+      "name": "calcular_envio",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "estado_pedido",
+        "description": "Devuelve el estado de un pedido existente (en fabricación, despachado, entregado). Usala cuando el cliente dé un número de pedido o pregunte dónde está su compra. Input: número de pedido (ej: \"R-1042\").",
+        "jsCode": "const pedidos = { 'R-1042': 'En fabricación, sale del taller el viernes', 'R-1043': 'Despachado, llega en 48 h', 'R-1044': 'Entregado' };\nconst id = (query||'').toUpperCase().match(/R-\\d+/)?.[0];\nreturn pedidos[id] || 'No encontré ese pedido. Pedile al cliente el número con formato R-XXXX.';"
+      },
+      "id": "n-tool2",
+      "name": "estado_pedido",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "medios_de_pago",
+        "description": "Informa medios de pago, cuotas y promociones bancarias vigentes. Usala cuando el cliente pregunte cómo puede pagar o si hay cuotas sin interés. Input: texto libre.",
+        "jsCode": "return 'Transferencia (10% off), tarjeta de crédito hasta 6 cuotas sin interés con bancos adheridos, débito y Mercado Pago.';"
+      },
+      "id": "n-tool3",
+      "name": "medios_de_pago",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "politica_devoluciones",
+        "description": "Explica la política de cambios y devoluciones (plazos, condiciones, quién paga el flete). Usala cuando el cliente quiera devolver o cambiar un producto, o se arrepienta de la compra. Input: texto libre.",
+        "jsCode": "return 'Derecho de arrepentimiento: 10 días corridos desde la entrega, producto sin uso y en su embalaje. Falla de fábrica: cambio sin cargo dentro de 30 días, el flete lo paga Roble.';"
+      },
+      "id": "n-tool4",
+      "name": "politica_devoluciones",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "agendar_visita_showroom",
+        "description": "Agenda una visita al showroom de Palermo para ver los muebles en persona. Usala cuando el cliente quiera ver un producto antes de comprar. Input: día y horario preferido.",
+        "jsCode": "return 'Visita pre-reservada para: ' + query + '. Showroom: Av. Ejemplo 1234, Palermo. Lunes a sábado de 10 a 19 h. Te confirmamos por WhatsApp.';"
+      },
+      "id": "n-tool5",
+      "name": "agendar_visita_showroom",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_garantia",
+        "description": "Informa la garantía de un producto (plazo y qué cubre). Usala cuando el cliente pregunte por garantía, defectos o durabilidad. Input: nombre del producto.",
+        "jsCode": "return 'Todos los muebles de madera maciza tienen 2 años de garantía por defectos estructurales. No cubre daños por humedad o mal uso.';"
+      },
+      "id": "n-tool6",
+      "name": "consultar_garantia",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "crear_ticket_soporte",
+        "description": "Crea un ticket para el equipo humano de postventa. Usala cuando el cliente reporte un problema que no podés resolver (producto dañado, reclamo, entrega fallida). Input: descripción del problema.",
+        "jsCode": "return 'Ticket #T-' + Math.floor(Math.random()*9000+1000) + ' creado. Un asesor contacta al cliente en menos de 24 h hábiles.';"
+      },
+      "id": "n-tool7",
+      "name": "crear_ticket_soporte",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "buscar_cliente_crm",
+        "description": "Busca los datos de un cliente en el CRM (historial de compras, nivel de cliente). Usala solo cuando necesites personalizar la respuesta para un cliente identificado por email. Input: email del cliente.",
+        "jsCode": "return JSON.stringify({ email: query, nombre: 'Cliente demo', compras_previas: 2, nivel: 'frecuente' });"
+      },
+      "id": "n-tool8",
+      "name": "buscar_cliente_crm",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1392,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "name": "aplicar_cupon_descuento",
+        "description": "Valida un cupón de descuento y devuelve el porcentaje que aplica. Usala cuando el cliente mencione un código de cupón. Input: código del cupón (ej: \"ROBLE10\").",
+        "jsCode": "const cupones = { 'ROBLE10': 10, 'BIENVENIDA15': 15 };\nconst c = (query||'').toUpperCase().trim();\nreturn cupones[c] ? 'Cupón válido: ' + cupones[c] + '% de descuento.' : 'Cupón inválido o vencido.';"
+      },
+      "id": "n-tool9",
+      "name": "aplicar_cupon_descuento",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1584,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        208
+      ],
+      "id": "19442651-e06b-474f-b60e-d74bfa7b7a07",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pmHZf57WAYpLj6WJ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 📏 Medición REAL de tokens con Gemini\nCon Gemini, n8n *estima* los tokens del agente contando solo el texto de los mensajes: **no incluye las herramientas** (por eso 1 tool y 10 tools dan igual).\n\nEste bloque le pregunta a Google con **countTokens** (gratis) cuántos tokens pesa el mismo pedido con 1 y con 10 herramientas. Ejecutalo con *Execute workflow* desde el trigger manual y mirá el último nodo.",
+        "height": 400,
+        "width": 1240,
+        "color": 5
+      },
+      "id": "m-note",
+      "name": "Medición real Gemini",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        704
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "m-trigger",
+      "name": "Medir tokens reales",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el MISMO pedido a Gemini dos veces: con 1 herramienta y con 10.\n// Lo único que cambia es la lista de herramientas.\nconst modelo = 'gemini-3-flash-preview'; // el mismo modelo que usa el agente\nconst pregunta = '¿Tienen en stock la mesa Nórdica de 160? ¿Cuánto sale?';\nconst systemPrompt = \"Sos el asistente de ventas de Roble Mueblería (Argentina). Respondé en español rioplatense, breve y claro. Para precios, stock, envíos, pedidos o políticas usá SIEMPRE las herramientas disponibles: nunca inventes datos. Si no tenés una herramienta para responder algo, decí que lo derivás a un asesor.\";\nconst herramientas = [\n  {\n    \"name\": \"consultar_stock\",\n    \"description\": \"Consulta stock y precio de un mueble del catálogo de Roble Mueblería. Usala cuando el cliente pregunte si hay disponibilidad, cuántas unidades quedan o cuánto cuesta un producto. Input: nombre del producto (ej: \\\"mesa Nórdica 160\\\").\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"calcular_envio\",\n    \"description\": \"Calcula costo y demora del envío según la provincia o ciudad de destino. Usala solo cuando el cliente pregunte cuánto sale o cuánto tarda el envío. Input: destino (ej: \\\"Córdoba\\\").\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"estado_pedido\",\n    \"description\": \"Devuelve el estado de un pedido existente (en fabricación, despachado, entregado). Usala cuando el cliente dé un número de pedido o pregunte dónde está su compra. Input: número de pedido (ej: \\\"R-1042\\\").\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"medios_de_pago\",\n    \"description\": \"Informa medios de pago, cuotas y promociones bancarias vigentes. Usala cuando el cliente pregunte cómo puede pagar o si hay cuotas sin interés. Input: texto libre.\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"politica_devoluciones\",\n    \"description\": \"Explica la política de cambios y devoluciones (plazos, condiciones, quién paga el flete). Usala cuando el cliente quiera devolver o cambiar un producto, o se arrepienta de la compra. Input: texto libre.\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"agendar_visita_showroom\",\n    \"description\": \"Agenda una visita al showroom de Palermo para ver los muebles en persona. Usala cuando el cliente quiera ver un producto antes de comprar. Input: día y horario preferido.\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"consultar_garantia\",\n    \"description\": \"Informa la garantía de un producto (plazo y qué cubre). Usala cuando el cliente pregunte por garantía, defectos o durabilidad. Input: nombre del producto.\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"crear_ticket_soporte\",\n    \"description\": \"Crea un ticket para el equipo humano de postventa. Usala cuando el cliente reporte un problema que no podés resolver (producto dañado, reclamo, entrega fallida). Input: descripción del problema.\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"buscar_cliente_crm\",\n    \"description\": \"Busca los datos de un cliente en el CRM (historial de compras, nivel de cliente). Usala solo cuando necesites personalizar la respuesta para un cliente identificado por email. Input: email del cliente.\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  },\n  {\n    \"name\": \"aplicar_cupon_descuento\",\n    \"description\": \"Valida un cupón de descuento y devuelve el porcentaje que aplica. Usala cuando el cliente mencione un código de cupón. Input: código del cupón (ej: \\\"ROBLE10\\\").\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"input\": {\n          \"type\": \"string\"\n        }\n      },\n      \"required\": [\n        \"input\"\n      ]\n    }\n  }\n];\n\nconst armar = (tools) => ({\n  generateContentRequest: {\n    model: 'models/' + modelo,\n    systemInstruction: { parts: [{ text: systemPrompt }] },\n    contents: [{ role: 'user', parts: [{ text: pregunta }] }],\n    tools: [{ functionDeclarations: tools }]\n  }\n});\n\nreturn [\n  { json: { escenario: '1 herramienta', cantidad: 1, modelo, body: armar(herramientas.slice(0, 1)) } },\n  { json: { escenario: '10 herramientas', cantidad: 10, modelo, body: armar(herramientas) } }\n];"
+      },
+      "id": "m-code",
+      "name": "Armar pedido: 1 vs 10 tools",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/{{ $json.modelo }}:countTokens",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "m-http",
+      "name": "Gemini countTokens",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        944
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pmHZf57WAYpLj6WJ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta los resultados de countTokens y calcula el overhead\nconst pedidos = $('Armar pedido: 1 vs 10 tools').all();\nconst res = $input.all().map((it, i) => ({\n  escenario: pedidos[i].json.escenario,\n  promptTokens: it.json.totalTokens\n}));\nconst t1 = res[0].promptTokens, t10 = res[1].promptTokens;\nconst overhead = t10 - t1;\nreturn [{ json: {\n  tokens_con_1_herramienta: t1,\n  tokens_con_10_herramientas: t10,\n  overhead_por_llamada: overhead,\n  overhead_por_pregunta_2_llamadas: overhead * 2,\n  overhead_1000_preguntas: overhead * 2 * 1000,\n  explicacion: 'Cada llamada al modelo vuelve a mandar la definición de TODAS las herramientas. Con 2 llamadas por pregunta (decide herramienta + responde), el overhead se paga 2 veces.'\n} }];"
+      },
+      "id": "m-cmp",
+      "name": "Comparar overhead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        944
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_stock": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcular_envio": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "estado_pedido": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "medios_de_pago": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "politica_devoluciones": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar_visita_showroom": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_garantia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear_ticket_soporte": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Roble",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_cliente_crm": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "aplicar_cupon_descuento": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Medir tokens reales": {
+      "main": [
+        [
+          {
+            "node": "Armar pedido: 1 vs 10 tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar pedido: 1 vs 10 tools": {
+      "main": [
+        [
+          {
+            "node": "Gemini countTokens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini countTokens": {
+      "main": [
+        [
+          {
+            "node": "Comparar overhead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "956c5455-4855-4663-880b-7e0102e0071a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "86a2d9cef1acf9facc8e0356275f0602ff7ea08eed9657166badcbbe779d3aab"
+  },
+  "nodeGroups": [],
+  "id": "Qws8Geu1QHXUP250",
+  "tags": [
+    {
+      "updatedAt": "2026-10-14T18:23:10.710Z",
+      "createdAt": "2026-10-14T18:23:10.710Z",
+      "id": "U0ZPSBoZjT6qCR8N",
+      "name": "avanzado_v2"
+    }
+  ]
+}

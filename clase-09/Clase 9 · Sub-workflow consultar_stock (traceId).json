@@ -1,0 +1,238 @@
+{
+  "name": "Clase 9 · Sub-workflow consultar_stock (traceId)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🔧 Sub-workflow: consultar_stock (Roble)\nLo llama el agente del workflow **Clase 9 · Trazabilidad con traceId**.\n\nCada vez que se ejecuta, n8n le da **otro executionId**. Por eso recibe el **traceId** como input y lo guarda en el log: así se puede unir con la ejecución del agente.\n\n⚠️ No lo ejecutes solo: se dispara desde el agente.",
+        "height": 220,
+        "width": 900,
+        "color": 6
+      },
+      "id": "f3578a79-74d5-4400-87e1-3fa14a1f46ba",
+      "name": "Nota sub",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -256
+      ]
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "producto"
+            },
+            {
+              "name": "traceId"
+            },
+            {
+              "name": "environment"
+            }
+          ]
+        }
+      },
+      "id": "a74c8ef1-58e0-4c83-b67d-05709f3aaba1",
+      "name": "Recibe producto + traceId",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const catalogo = {\n  'mesa nórdica 160': { stock: 4, precio: 485000 },\n  'mesa nórdica 200': { stock: 0, precio: 590000 },\n  'silla escandinava': { stock: 22, precio: 78000 },\n  'rack tv roble': { stock: 2, precio: 320000 },\n  'cama paraíso 2 plazas': { stock: 1, precio: 710000 }\n};\nconst { producto = '', traceId, environment } = $input.first().json;\nconst q = producto.toLowerCase();\nconst key = Object.keys(catalogo).find(k => q.includes(k) || k.includes(q));\nconst resultado = key\n  ? { producto: key, stock: catalogo[key].stock, precio_ARS: catalogo[key].precio }\n  : { error: 'Producto no encontrado', disponibles: Object.keys(catalogo) };\nreturn [{ json: { traceId, environment, resultado } }];"
+      },
+      "id": "c8d2eaee-24a6-46e6-ad9c-0a5e8ecb4819",
+      "name": "Consultar catálogo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GiSToS43oqpbaK17"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now.setZone('America/Argentina/Buenos_Aires').toISO() }}",
+            "traceId": "={{ $json.traceId }}",
+            "executionId": "={{ $execution.id }}",
+            "workflow": "={{ $workflow.name }}",
+            "nodeName": "Consultar catálogo",
+            "evento": "={{ 'Consulta stock: ' + JSON.stringify($json.resultado) }}",
+            "agentThought": "",
+            "environment": "={{ $json.environment }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "traceId",
+              "displayName": "traceId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "executionId",
+              "displayName": "executionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nodeName",
+              "displayName": "nodeName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento",
+              "displayName": "evento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "agentThought",
+              "displayName": "agentThought",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "environment",
+              "displayName": "environment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "42a2426e-265b-491f-be20-ee6c34e6d73c",
+      "name": "Log: sub-workflow",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9d1c1ae3-3c90-4a06-a00b-bbe54f825e4e",
+              "name": "response",
+              "value": "={{ JSON.stringify($('Consultar catálogo').item.json.resultado) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "70f23131-662e-4aa3-b847-ad4a1872f0f3",
+      "name": "Devolver al agente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recibe producto + traceId": {
+      "main": [
+        [
+          {
+            "node": "Consultar catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar catálogo": {
+      "main": [
+        [
+          {
+            "node": "Log: sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log: sub-workflow": {
+      "main": [
+        [
+          {
+            "node": "Devolver al agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c14d3520-69bb-497e-8eb7-d93cd4832164",
+  "meta": {
+    "instanceId": "86a2d9cef1acf9facc8e0356275f0602ff7ea08eed9657166badcbbe779d3aab"
+  },
+  "nodeGroups": [],
+  "id": "MTvkfOTJ5YbKcdyK",
+  "tags": []
+}
