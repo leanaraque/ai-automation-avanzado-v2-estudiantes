@@ -1,0 +1,370 @@
+{
+  "name": "Roble - Propuesta comercial",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Propuesta comercial de Muebles Roble\n**Datos del cliente** y **Precio híbrido** son tus supuestos: cambialos por los de tu cliente.\n\n**Business case**: el código hace las cuentas (dos escenarios, payback y ROI).\n\n**Redactar la propuesta (Groq)**: la IA solo redacta. **Revisar la jerga**: el código busca palabras técnicas y, si encuentra, pide otra versión (máximo 3 intentos).\n\nResultado: **Descargar el brochure** > Download. Abrí el archivo en el navegador y guardalo como PDF (Ctrl + P).",
+        "height": 320,
+        "width": 820,
+        "color": 5
+      },
+      "id": "fa719fbf-8d7b-5c00-a036-2c4b3c58eb2e",
+      "name": "Nota propuesta",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -440
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "c8816b8a-5a9f-5e96-9477-aff6b8409091",
+      "name": "Armar la propuesta",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lo que sabemos de Muebles Roble. Lo medido sale de la Clase 8.\n// SUPUESTO = un dato que hay que confirmar con el cliente en la Fase 0 (auditoría y línea de base).\nreturn [{ json: {\n  cliente: 'Muebles Roble',\n  decide: 'Marta Ríos (dueña) y su contador',\n  proceso: 'Atención de consultas repetidas y presupuestos de compradores grandes',\n\n  // Línea de base: cómo se trabaja hoy, sin el sistema (caso.md)\n  consultas_por_dia: 60,\n  porcentaje_repetidas: 0.7,        // 7 de cada 10 son las mismas preguntas\n  dias_habiles_mes: 22,\n  horas_julian_por_dia: 3,          // lo que Julián dedica a esas consultas\n  costo_hora_julian_usd: 6,         // SUPUESTO\n  presupuestos_perdidos_mes: 2,     // Marta calcula que pierde 2 o 3 por mes\n  ticket_presupuesto_usd: 1500,     // SUPUESTO: un presupuesto grande promedio\n  margen_bruto: 0.3,                // SUPUESTO: lo que le queda a Roble de cada venta\n\n  // Medición de la Clase 8 (arquitectura B)\n  precision_medida: 0.8,            // 4 de 5 casos de oro correctos\n  hitl_rate: 0.2,                   // 1 de cada 5 consultas la revisa una persona\n  costo_1000_consultas_usd: 0.5,    // tokens reales de Groq\n  plataforma_mes_usd: 24,           // n8n\n} }];"
+      },
+      "id": "8e25a2d8-91d0-59bd-bc63-47205eed2eaf",
+      "name": "Datos del cliente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cómo cobrás vos. Modelo híbrido: implementación + soporte mensual + un porcentaje por resultado.\nreturn [{ json: {\n  ...$input.first().json,\n  implementacion_usd: 900,\n  implementacion_incluye: 'Auditoría del proceso y línea de base (Fase 0), configuración, carga del manual y pruebas',\n  soporte_mes_usd: 120,\n  soporte_incluye: [\n    'Revisar cada mes la medición del revisor con 50 consultas reales',\n    'Actualizar el manual cuando cambian precios, envíos o políticas',\n    'Ajustar las instrucciones del asistente si baja la precisión',\n    'Probar y cambiar de proveedor si sube el costo o empeora la calidad',\n  ],\n  exito_porcentaje: 0.04,           // 4% de cada presupuesto grande recuperado\n  kpi: 'Presupuesto grande que el sistema registró en HubSpot (Origen = Asistente) y que se cerró como venta',\n  ventana_dias: 30,                 // días desde que el sistema lo registró\n  recupero_esperado: 0.5,           // de los presupuestos que hoy se pierden, cuántos esperamos recuperar\n} }];"
+      },
+      "id": "28054e06-5929-537e-a686-459833dfb310",
+      "name": "Precio híbrido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// El código hace todas las cuentas. Dos escenarios: el conservador va primero.\nconst d = $input.first().json;\nconst consultas_mes = Math.round(d.consultas_por_dia * d.porcentaje_repetidas * d.dias_habiles_mes);\nconst ahorro_horas = d.horas_julian_por_dia * d.dias_habiles_mes * d.costo_hora_julian_usd * (1 - d.hitl_rate);\nconst costo_tokens = consultas_mes * d.costo_1000_consultas_usd / 1000;\nconst costo_fijo = d.plataforma_mes_usd + costo_tokens + d.soporte_mes_usd;\nconst recuperados = d.presupuestos_perdidos_mes * d.recupero_esperado;\nconst margen_recuperado = recuperados * d.ticket_presupuesto_usd * d.margen_bruto;\nconst exito_usd = recuperados * d.ticket_presupuesto_usd * d.exito_porcentaje;\nconst r = x => Math.round(x * 100) / 100;\nfunction escenario(nombre, beneficio, costo, cobro_exito) {\n  const neto = beneficio - costo;\n  return {\n    nombre,\n    beneficio_mes_usd: Math.round(beneficio),\n    costo_mes_usd: Math.round(costo),\n    neto_mes_usd: Math.round(neto),\n    payback_meses: neto > 0 ? (d.implementacion_usd / neto).toFixed(1).replace('.', ',') : 'no se paga',\n    roi_12_meses: Math.round((neto * 12 - d.implementacion_usd) / d.implementacion_usd * 100) + '%',\n    ingreso_consultor_ano_usd: Math.round(d.implementacion_usd + 12 * (d.soporte_mes_usd + cobro_exito)),\n  };\n}\nreturn [{ json: {\n  ...d,\n  consultas_mes,\n  ahorro_horas_mes_usd: Math.round(ahorro_horas),\n  costo_tokens_mes_usd: r(costo_tokens),\n  presupuestos_recuperados_mes: recuperados,\n  margen_recuperado_mes_usd: Math.round(margen_recuperado),\n  exito_mes_usd: Math.round(exito_usd),\n  conservador: escenario('Conservador: solo el tiempo de Julián, sin presupuestos recuperados',\n                         ahorro_horas, costo_fijo, 0),\n  esperado: escenario('Esperado: además se recupera la mitad de los presupuestos que hoy se pierden',\n                      ahorro_horas + margen_recuperado, costo_fijo + exito_usd, exito_usd),\n} }];"
+      },
+      "id": "4cf7e675-2b22-53a8-ae29-6e224964d663",
+      "name": "Business case",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "864e763a-daf4-51de-ad55-190c54a10914",
+              "name": "intento",
+              "value": "={{ $json.intento ?? 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "0383cbf8-8bcc-572b-ae17-154ffde1c2a8",
+              "name": "critica",
+              "value": "={{ $json.critica ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "5d6fec8d-e427-587e-a440-d8d78c78301c",
+      "name": "Preparar intento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'openai/gpt-oss-120b',\n  temperature: 0.3,\n  reasoning_effort: 'low',\n  response_format: { type: 'json_schema', json_schema: { name: 'propuesta', schema: {\"type\": \"object\", \"properties\": {\"titulo\": {\"type\": \"string\"}, \"problema\": {\"type\": \"string\"}, \"promesa\": {\"type\": \"string\"}, \"funcion_beneficio\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"funcion\": {\"type\": \"string\"}, \"en_simple\": {\"type\": \"string\"}, \"beneficio\": {\"type\": \"string\"} }, \"required\": [\"funcion\", \"en_simple\", \"beneficio\"], \"additionalProperties\": false} }, \"objeciones\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"objecion\": {\"type\": \"string\"}, \"respuesta\": {\"type\": \"string\"} }, \"required\": [\"objecion\", \"respuesta\"], \"additionalProperties\": false} } }, \"required\": [\"titulo\", \"problema\", \"promesa\", \"funcion_beneficio\", \"objeciones\"], \"additionalProperties\": false} } },\n  messages: [\n    { role: 'system', content: \"Sos consultor de negocios. Escribís la propuesta para la dueña de una pyme y su contador, que no saben de tecnología. Recibís el BUSINESS CASE (números ya calculados), las CAPACIDADES del sistema y tres OBJECIONES.\\nReglas:\\n- Lenguaje de negocio, en español rioplatense, claro y concreto. Sin emojis.\\n- Prohibido usar palabras técnicas: n8n, nodo, workflow, LLM, modelo de lenguaje, embedding, token, prompt, RAG, API, webhook, JSON, traceId, Human-in-the-loop, AI-as-a-Judge, Manager-Worker. Decí \\\"el asistente\\\", \\\"el revisor\\\", \\\"una persona del equipo\\\", \\\"el número de seguimiento\\\".\\n- Usá solo los números del BUSINESS CASE. No inventes otros. Montos como \\\"US$ 172\\\".\\n- titulo: el nombre de la propuesta, en menos de 10 palabras.\\n- problema: 2 oraciones, con la línea de base (consultas, horas, presupuestos perdidos).\\n- promesa: 2 oraciones. Primero el escenario conservador (neto por mes y payback); después el esperado.\\n- funcion_beneficio: una fila por cada CAPACIDAD, en el mismo orden. funcion = la capacidad copiada tal cual; en_simple = qué hace, en menos de 12 palabras y sin palabras técnicas; beneficio = una oración sobre lo que gana el negocio.\\n- objeciones: una fila por cada OBJECION, en el mismo orden. objecion = copiada tal cual; respuesta = 2 o 3 oraciones apoyadas en el revisor, la aprobación de una persona, el despliegue por fases y los números.\\nRespondé solo con el JSON pedido.\" },\n    { role: 'user', content: 'BUSINESS CASE:\\n' + JSON.stringify({\n        cliente: $json.cliente, decide: $json.decide, proceso: $json.proceso,\n        consultas_repetidas_por_mes: $json.consultas_mes, horas_julian_por_dia: $json.horas_julian_por_dia,\n        presupuestos_perdidos_mes: $json.presupuestos_perdidos_mes, precision_medida: $json.precision_medida,\n        conservador: $json.conservador, esperado: $json.esperado,\n        implementacion_usd: $json.implementacion_usd, soporte_mes_usd: $json.soporte_mes_usd\n      }, null, 1)\n      + '\\n\\nCAPACIDADES:\\n' + \"- Agente con RAG sobre el Manual de Políticas 2026\\n- Juez LLM (AI-as-a-Judge) que revisa cada respuesta antes de enviarla\\n- Human-in-the-loop por Telegram para reembolsos, reclamos y manipulaciones\\n- Manager-Worker que clasifica cada consulta (VENTAS, POSTVENTA, OTROS) y la deriva a un especialista\\n- Carga de presupuestos grandes en HubSpot sin duplicar contactos\\n- Trazabilidad con traceId en cada conversación\"\n      + '\\n\\nOBJECIONES:\\n' + \"- Esto ya lo hace nuestro CRM.\\n- ¿Y si el asistente se equivoca o borra datos de clientes?\\n- Es caro para lo que ahorra.\"\n      + ($json.critica ? '\\n\\nCORREGÍ ESTO DE TU VERSIÓN ANTERIOR: ' + $json.critica : '') }\n  ]\n}) }}",
+        "options": {}
+      },
+      "id": "33abfb70-847f-5a37-b7fd-be89e428a8d3",
+      "name": "Redactar la propuesta (Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// La IA redacta; el código revisa. Busca palabras técnicas que el comité no entiende.\nconst JERGA = new RegExp(\"\\\\b(n8n|nodos?|workflows?|sub-?workflows?|LLM|modelos? de lenguaje|embeddings?|tokens?|prompts?|RAG|API|webhooks?|JSON|Groq|vectorial(es)?|traceId|AI-as-a-Judge|Human-in-the-loop|HITL|Manager-Worker|machine learning|inteligencia artificial generativa)\\\\b\", 'gi');\nconst prep = $('Preparar intento').first().json;\nconst g = $input.first().json;\nconst n = JSON.parse(g.choices[0].message.content);\nconst textos = [n.titulo, n.problema, n.promesa,\n  ...n.funcion_beneficio.map(f => f.en_simple + ' ' + f.beneficio),...n.objeciones.map(o => o.respuesta)].join(' ');\nconst jerga = [...new Set((textos.match(JERGA) || []).map(p => p.toLowerCase()))];\nreturn [{ json: {\n  ...prep,\n  narrativa: n,\n  jerga,\n  tokens_redaccion: (prep.tokens_redaccion || 0) + g.usage.total_tokens,\n} }];"
+      },
+      "id": "932cb796-0b2a-5941-99b6-7255981d85b5",
+      "name": "Revisar la jerga",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c4bb6aef-ac89-583d-8ae7-8d7a31a77da5",
+              "leftValue": "={{ $json.jerga.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "a96f64c3-3215-5842-8e86-a5993426ba9e",
+              "leftValue": "={{ $json.intento }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "6b6ce608-4533-5aca-9cfc-ea53eaa8b9ea",
+      "name": "¿Se entiende sin saber de tecnología?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1540,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba912fb2-0769-5ee1-916b-932fa76cd9b4",
+              "name": "intento",
+              "value": "={{ $json.intento + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "c8d65fc3-b4d4-5920-b89d-9c6007709a9e",
+              "name": "critica",
+              "value": "={{ 'Usaste palabras técnicas que el comité no entiende: ' + $json.jerga.join(', ') + '. Reescribí esas frases sin ellas.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "c3aa9f22-e47e-5f90-9a0e-dcce807db01b",
+      "name": "Pedir otra versión",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el brochure de cuatro secciones (las del material). Lo fijo lo escribe el consultor; la narrativa, la IA.\nconst d = $input.first().json;\nconst n = d.narrativa;\nconst ROADMAP = [\n  {\n    \"fase\": \"Fase 0 · Modo sombra\",\n    \"cuando\": \"Semanas 1 y 2\",\n    \"puede\": \"Leer las consultas y proponer respuestas que no le llegan al cliente\",\n    \"prohibido\": \"Responder al cliente y registrar datos en HubSpot\",\n    \"valida\": \"Julián, una por una\",\n    \"salida\": \"50 consultas reales con 90% de respuestas correctas según Julián y ninguna promesa fuera del manual\"\n  },\n  {\n    \"fase\": \"Fase 1 · Piloto de solo lectura\",\n    \"cuando\": \"Semanas 3 a 6\",\n    \"puede\": \"Responder las preguntas frecuentes (envíos, cuotas, garantía) con el manual\",\n    \"prohibido\": \"Registrar o cambiar datos, y prometer reembolsos o descuentos\",\n    \"valida\": \"El revisor, en cada respuesta; Julián, una muestra por semana\",\n    \"salida\": \"4 semanas con menos del 20% de consultas derivadas a una persona y sin errores graves\"\n  },\n  {\n    \"fase\": \"Fase 2 · Escritura controlada\",\n    \"cuando\": \"Semanas 7 a 10\",\n    \"puede\": \"Registrar presupuestos grandes en HubSpot y preparar respuestas a reclamos\",\n    \"prohibido\": \"Hacerlo sin la aprobación de una persona del equipo por Telegram\",\n    \"valida\": \"El equipo, en cada acción\",\n    \"salida\": \"95% de aprobaciones sin cambios durante 4 semanas\"\n  },\n  {\n    \"fase\": \"Fase 3 · Autonomía supervisada\",\n    \"cuando\": \"Desde la semana 11\",\n    \"puede\": \"Registrar presupuestos sin aprobación previa, dentro de las reglas\",\n    \"prohibido\": \"Reembolsos, descuentos y reclamos legales: siempre los decide una persona\",\n    \"valida\": \"El revisor, en cada respuesta; informe mensual a Marta\",\n    \"salida\": \"Si la precisión baja del 90%, se vuelve a la Fase 2\"\n  }\n];\nconst PLAN = [\n  {\n    \"cuando\": \"Días 1 a 5\",\n    \"hito\": \"Auditoría del proceso: medir consultas, horas y presupuestos perdidos (la línea de base)\",\n    \"responsable\": \"Consultor, con Julián\"\n  },\n  {\n    \"cuando\": \"Días 6 a 10\",\n    \"hito\": \"Configuración: manual de políticas, revisor y reglas de qué decide una persona\",\n    \"responsable\": \"Consultor\"\n  },\n  {\n    \"cuando\": \"Días 11 a 20\",\n    \"hito\": \"Fase 0, modo sombra: 50 consultas reales revisadas\",\n    \"responsable\": \"Julián\"\n  },\n  {\n    \"cuando\": \"Días 21 a 25\",\n    \"hito\": \"Informe de la medición y decisión de pasar a la Fase 1\",\n    \"responsable\": \"Marta, con el consultor\"\n  },\n  {\n    \"cuando\": \"Días 26 a 30\",\n    \"hito\": \"Fase 1, piloto de solo lectura en el chat de la tienda\",\n    \"responsable\": \"Consultor (seguimiento diario)\"\n  }\n];\nconst FALLBACK = \"Si el asistente no responde en 30 segundos o el proveedor falla, el cliente recibe \\\"Tu consulta la revisa una persona del equipo\\\" y la consulta le llega a Julián por Telegram. Ninguna consulta se pierde ni se responde dos veces.\";\nconst TRAZABILIDAD = \"Cada conversación lleva un número de seguimiento. Cuando el asistente registra un presupuesto en HubSpot, completa dos campos: Origen = Asistente y el número de seguimiento. El cobro por resultado se calcula solo con esos registros: son la única fuente de verdad, para Roble y para el consultor.\";\nconst DIAGRAMA = \"flowchart LR\\n    C[Clientes: chat, correo y Telegram] --> R[Coordinador: entiende qué necesita cada cliente]\\n    R --> V[Especialista en ventas]\\n    R --> P[Especialista en postventa]\\n    V --> Q[Revisor de calidad]\\n    P --> Q\\n    M[(Manual de políticas)] --> V\\n    M --> P\\n    Q -- correcta --> C\\n    Q -- riesgo o duda --> E[Equipo de Roble: aprueba por Telegram]\\n    V --> H[(HubSpot: presupuestos grandes)]\";\nconst e = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst usd = x => 'US$ ' + Number(x).toLocaleString('es-AR');\nconst tabla = (cab, filas) => '<table><tr>' + cab.map(c => '<th>' + e(c) + '</th>').join('') + '</tr>'\n  + filas.map(f => '<tr>' + f.map(c => '<td>' + e(c) + '</td>').join('') + '</tr>').join('') + '</table>';\nconst esc = [d.conservador, d.esperado];\nconst html = `<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\">\n<title>${e(n.titulo)}</title>\n<style>\nbody{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:860px;margin:32px auto;padding:0 24px;line-height:1.5}\nh1{font-size:28px;margin-bottom:4px}h2{border-bottom:3px solid #ff632b;padding-bottom:4px;margin-top:36px}\ntable{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}\nth{background:#ffe5db}.sub{color:#555}.nota{background:#f6f6f6;padding:10px 14px;border-left:4px solid #ff632b}\n@media print{h2{break-before:auto}table,tr{break-inside:avoid}}\n</style></head><body>\n<h1>${e(n.titulo)}</h1>\n<p class=\"sub\">Propuesta para ${e(d.decide)} · ${e(d.cliente)}</p>\n<h2>1. El problema y la promesa</h2>\n<p><strong>Hoy.</strong> ${e(n.problema)}</p>\n<p><strong>Con el sistema.</strong> ${e(n.promesa)}</p>\n<h3>Cómo funciona</h3>\n<pre class=\"mermaid\">${DIAGRAMA}</pre>\n<h3>Qué gana el negocio</h3>\n${tabla(['Lo que hace el sistema', 'Lo que gana Roble'], n.funcion_beneficio.map(f => [f.en_simple, f.beneficio]))}\n<h3>Los números</h3>\n<p>Línea de base: ${d.consultas_mes} consultas repetidas por mes, ${d.horas_julian_por_dia} horas por día de Julián y ${d.presupuestos_perdidos_mes} presupuestos grandes perdidos por mes. Precisión medida en las pruebas: ${Math.round(d.precision_medida * 100)}%.</p>\n${tabla(['Escenario', 'Beneficio por mes', 'Costo por mes', 'Neto por mes', 'Se paga en', 'ROI a 12 meses'],\n  esc.map(s => [s.nombre, usd(s.beneficio_mes_usd), usd(s.costo_mes_usd), usd(s.neto_mes_usd), s.payback_meses + ' meses', s.roi_12_meses]))}\n<h2>2. El despliegue, por fases</h2>\n${tabla(['Fase', 'Cuándo', 'Qué puede hacer', 'Qué tiene prohibido', 'Quién valida', 'Para pasar a la siguiente'],\n  ROADMAP.map(f => [f.fase, f.cuando, f.puede, f.prohibido, f.valida, f.salida]))}\n<p class=\"nota\"><strong>Si algo falla.</strong> ${e(FALLBACK)}</p>\n<h2>3. Cómo se cobra</h2>\n${tabla(['Componente', 'Monto', 'Qué incluye'], [\n  ['Implementación (una vez)', usd(d.implementacion_usd), d.implementacion_incluye],\n  ['Soporte mensual', usd(d.soporte_mes_usd) + ' por mes', d.soporte_incluye.join('. ') + '.'],\n  ['Por resultado', Math.round(d.exito_porcentaje * 100) + '% de cada venta', d.kpi + ', dentro de los ' + d.ventana_dias + ' días desde que el sistema lo registró'],\n])}\n<p>Si el sistema no recupera ningún presupuesto, Roble no paga la parte por resultado: ese riesgo lo asume el consultor.</p>\n<h2>4. Los primeros 30 días</h2>\n${tabla(['Cuándo', 'Hito', 'Responsable'], PLAN.map(p => [p.cuando, p.hito, p.responsable]))}\n<p class=\"nota\"><strong>Cómo se mide el resultado.</strong> ${e(TRAZABILIDAD)}</p>\n<h3>Preguntas del comité</h3>\n${tabla(['Pregunta', 'Respuesta'], n.objeciones.map(o => [o.objecion, o.respuesta]))}\n<script src=\"https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js\"></script>\n<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>\n</body></html>`;\nreturn [{ json: {\n  titulo: n.titulo,\n  payback_conservador: d.conservador.payback_meses + ' meses',\n  payback_esperado: d.esperado.payback_meses + ' meses',\n  intentos: d.intento,\n  jerga_que_quedo: d.jerga.join(', '),\n  tokens_redaccion: d.tokens_redaccion,\n  brochure_html: html,\n} }];"
+      },
+      "id": "2df721f9-5c15-5b8f-a74d-48fbeb33ba09",
+      "name": "Armar el brochure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "brochure_html",
+        "options": {
+          "fileName": "brochure-muebles-roble.html"
+        }
+      },
+      "id": "824bbd8a-cbe8-51c2-9c15-a0efe78aea8b",
+      "name": "Descargar el brochure",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        -100
+      ]
+    }
+  ],
+  "connections": {
+    "Armar la propuesta": {
+      "main": [
+        [
+          {
+            "node": "Datos del cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos del cliente": {
+      "main": [
+        [
+          {
+            "node": "Precio híbrido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precio híbrido": {
+      "main": [
+        [
+          {
+            "node": "Business case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Business case": {
+      "main": [
+        [
+          {
+            "node": "Preparar intento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar intento": {
+      "main": [
+        [
+          {
+            "node": "Redactar la propuesta (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar la propuesta (Groq)": {
+      "main": [
+        [
+          {
+            "node": "Revisar la jerga",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar la jerga": {
+      "main": [
+        [
+          {
+            "node": "¿Se entiende sin saber de tecnología?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se entiende sin saber de tecnología?": {
+      "main": [
+        [
+          {
+            "node": "Armar el brochure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pedir otra versión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir otra versión": {
+      "main": [
+        [
+          {
+            "node": "Preparar intento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar el brochure": {
+      "main": [
+        [
+          {
+            "node": "Descargar el brochure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

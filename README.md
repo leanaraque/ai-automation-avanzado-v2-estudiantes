@@ -23,3 +23,9 @@ Material de las clases del curso AI Automation Avanzado (Coderhouse). Todo el cu
 | `clase-08/roble-juez.json` | El juez (sub-workflow) con salida JSON |
 | `clase-08/roble-atencion-con-juez.json` | Atención con juez: regla dura, aceptar, corregir y aprobación del equipo por Telegram |
 | `clase-08/preguntas-de-entrevista.md` | Medir y vender un agente: las preguntas de entrevista con sus respuestas |
+| `clase-09/` | Gobernanza, costo de los tokens y trazabilidad con `traceId` (Clase 9) |
+| `antes-de-la-clase-10.md` | Lo que tenés que tener listo antes de la Clase 10 (n8n Cloud y Groq) |
+| `clase-10/roble-propuesta-comercial.json` | La propuesta comercial: business case en dos escenarios, redacción sin jerga y el brochure listo para guardar como PDF |
+| `clase-10/roble-comite-simulado.json` | El comité simulado: el contador de Marta hace tres objeciones y da un veredicto |
+| `clase-10/entrega-final.md` | La entrega final, requisito por requisito, y dónde lo construiste en el curso |
+| `clase-10/preguntas-de-entrevista.md` | Vender y desplegar un agente: las preguntas de entrevista con sus respuestas |

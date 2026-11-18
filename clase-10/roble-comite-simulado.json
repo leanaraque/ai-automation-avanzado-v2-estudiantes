@@ -1,0 +1,129 @@
+{
+  "name": "Roble - Comité simulado",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Comité simulado: el contador de Marta\nAbrí **Open chat** y presentá tu propuesta en 3 frases. El contador hace tres objeciones, de a una:\n\n1. Esto ya lo hace nuestro CRM.\n2. ¿Y si el asistente se equivoca o borra datos?\n3. Es caro para lo que ahorra.\n\nRespondé con números, controles y fases. Al final da el veredicto del comité. Para empezar de nuevo, tocá **Reset** en el chat (Reset chat session).",
+        "height": 300,
+        "width": 620,
+        "color": 5
+      },
+      "id": "f8f8db0c-1daa-507c-8d84-4d42607b5654",
+      "name": "Nota comité",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8f584c72-6ed4-5700-bf17-1e1244039e52",
+      "name": "Tu defensa",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "68785863-4bc0-545b-af21-a133f23309ed"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Sos el contador de Muebles Roble, una mueblería de Buenos Aires. Estás en una reunión con Marta Ríos, la dueña, escuchando a un consultor que quiere instalar un asistente de atención. Sos escéptico, cordial y vas a los números. No sabés de tecnología: si el consultor usa palabras técnicas (n8n, nodo, prompt, token, RAG, API, LLM, webhook), pedile que lo explique en castellano.\n\nCómo es la reunión:\n1. Si el consultor todavía no presentó su propuesta, pedísela en una oración.\n2. Cuando la presente, hacés tres objeciones, de a una por mensaje y en este orden:\n   a) \"Esto ya lo hace nuestro CRM.\"\n   b) \"¿Y si el asistente se equivoca o borra datos de clientes?\"\n   c) \"Es caro para lo que ahorra.\"\n3. Pasás a la objeción siguiente si la respuesta tiene algo concreto: un número, un control o una fase del despliegue. Si es vaga, repreguntás una sola vez; con la segunda respuesta, pasás igual.\n4. Después de la respuesta a la tercera objeción, das el veredicto del comité con este formato exacto:\nVEREDICTO: APROBADO, APROBADO CON CONDICIONES o NO APROBADO\nLO QUE CONVENCIÓ: una oración.\nLO QUE FALTÓ: una oración.\n\nReglas: máximo 3 oraciones por mensaje, salvo el veredicto. Español rioplatense. Sin emojis. Nunca escribas las respuestas del consultor por él.",
+          "maxIterations": 3
+        }
+      },
+      "id": "b8f09fa7-904a-583f-a6a7-68136a46879c",
+      "name": "El contador de Marta",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        260,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "f4d0f309-0e34-5453-a0ae-e42f90e8020b",
+      "name": "Groq (comité)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        180,
+        220
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "",
+          "name": "Groq"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "id": "74a23350-329a-5be1-9839-1674bda78c00",
+      "name": "Memoria de la reunión",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        360,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Tu defensa": {
+      "main": [
+        [
+          {
+            "node": "El contador de Marta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq (comité)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "El contador de Marta",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria de la reunión": {
+      "ai_memory": [
+        [
+          {
+            "node": "El contador de Marta",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
